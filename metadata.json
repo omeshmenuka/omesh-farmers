@@ -1,0 +1,7 @@
+{
+  "name": "Riga Farmers Market AI",
+  "description": "Connect with local Latvian farmers, find fresh organic produce, and get seasonal AI updates.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
