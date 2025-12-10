@@ -9,6 +9,8 @@ import AddFarmer from './pages/AddFarmer';
 import Favorites from './pages/Favorites';
 import Login from './pages/Login';
 import MyFarm from './pages/MyFarm';
+import AdminLogin from './pages/AdminLogin';
+import AdminLayout from './pages/AdminLayout';
 import { FarmerProvider } from './context/FarmerContext';
 
 function App() {
@@ -16,17 +18,25 @@ function App() {
     <FarmerProvider>
       <Router>
         <Routes>
+          {/* Main "Riga Harvest" Consumer App */}
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="farmer/:id" element={<FarmerDetail />} />
             <Route path="add-farmer" element={<AddFarmer />} />
             <Route path="favorites" element={<Favorites />} />
-            <Route path="admin" element={<AdminDashboard />} />
             <Route path="login" element={<Login />} />
             <Route path="my-farm" element={<MyFarm />} />
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="admin-login" element={<AdminLogin />} />
           </Route>
+
+          {/* Separate "Admin Portal" App */}
+          <Route path="/admin" element={<AdminLayout />}>
+             <Route index element={<Navigate to="dashboard" replace />} />
+             <Route path="dashboard" element={<AdminDashboard />} />
+          </Route>
+
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </FarmerProvider>

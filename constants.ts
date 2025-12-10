@@ -1,6 +1,8 @@
 
 import { Farmer, ProductCategory } from './types';
 
+export const ADMIN_PASSWORD = 'admin'; // Simple password for demo
+
 export const MOCK_FARMERS: Farmer[] = [
   {
     id: '1',

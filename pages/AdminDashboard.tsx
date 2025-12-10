@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Users, Leaf, TrendingUp, AlertCircle, ShieldCheck, Ban, Check, X, Trash2, ExternalLink, Eye } from 'lucide-react';
+import { Users, TrendingUp, AlertCircle, ShieldCheck, Check, X, Trash2, ExternalLink, Eye } from 'lucide-react';
 import { useFarmers } from '../context/FarmerContext';
 
 const AdminDashboard: React.FC = () => {
@@ -32,14 +32,15 @@ const AdminDashboard: React.FC = () => {
   const COLORS = ['#15803d', '#16a34a', '#4ade80', '#bbf7d0'];
 
   const handleInspect = (id: string) => {
+    // Opens in the main app view
     window.open(`#/farmer/${id}`, '_blank');
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+    <div className="max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-stone-900">Admin Dashboard</h1>
-        <p className="text-stone-600">Platform overview and analytics</p>
+          <h1 className="text-3xl font-bold text-stone-900">Dashboard Overview</h1>
+          <p className="text-stone-600">Real-time platform analytics</p>
       </div>
 
       {/* Stats Cards */}
@@ -95,7 +96,7 @@ const AdminDashboard: React.FC = () => {
 
       {/* PENDING APPROVALS SECTION */}
       {pendingApprovals.length > 0 && (
-        <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-xl overflow-hidden">
+        <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-xl overflow-hidden shadow-sm">
            <div className="p-6 border-b border-yellow-100 flex items-center gap-2">
              <AlertCircle className="text-yellow-700" size={24} />
              <h3 className="text-lg font-bold text-yellow-900">New Submissions Pending Approval</h3>

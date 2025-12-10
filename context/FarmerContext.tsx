@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Farmer, Product } from '../types';
-import { MOCK_FARMERS } from '../constants';
+import { MOCK_FARMERS, ADMIN_PASSWORD } from '../constants';
 
 interface FarmerContextType {
   farmers: Farmer[];
@@ -21,6 +21,10 @@ interface FarmerContextType {
   addProduct: (farmerId: string, product: Product) => void;
   deleteProduct: (farmerId: string, productId: string) => void;
   updateFarmerProfile: (farmerId: string, updates: Partial<Farmer>) => void;
+  // Admin Auth
+  isAdminLoggedIn: boolean;
+  loginAdmin: (password: string) => boolean;
+  logoutAdmin: () => void;
 }
 
 const FarmerContext = createContext<FarmerContextType | undefined>(undefined);
@@ -64,6 +68,10 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   });
 
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
+    return localStorage.getItem('isAdminLoggedIn') === 'true';
+  });
+
   // Persist changes to Local Storage
   useEffect(() => {
     localStorage.setItem('farmers', JSON.stringify(farmers));
@@ -84,6 +92,10 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       localStorage.removeItem('currentUser');
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem('isAdminLoggedIn', String(isAdminLoggedIn));
+  }, [isAdminLoggedIn]);
 
 
   const addFarmer = (newFarmer: Farmer) => {
@@ -154,6 +166,19 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const logout = () => {
     setCurrentUser(null);
+  };
+
+  // Admin Auth Logic
+  const loginAdmin = (password: string): boolean => {
+    if (password === ADMIN_PASSWORD) {
+      setIsAdminLoggedIn(true);
+      return true;
+    }
+    return false;
+  };
+
+  const logoutAdmin = () => {
+    setIsAdminLoggedIn(false);
   };
 
   // Stock Management Logic
@@ -233,7 +258,10 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       updateProductStock,
       addProduct,
       deleteProduct,
-      updateFarmerProfile
+      updateFarmerProfile,
+      isAdminLoggedIn,
+      loginAdmin,
+      logoutAdmin
     }}>
       {children}
     </FarmerContext.Provider>

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Sprout, Menu, X, Bell, User, MapPin, Heart, PlusCircle, Tractor } from 'lucide-react';
+import { Sprout, Bell, User, MapPin, Heart, PlusCircle, Tractor, ShieldCheck } from 'lucide-react';
 import AIAssistant from './AIAssistant';
 import { useFarmers } from '../context/FarmerContext';
 
@@ -11,8 +11,19 @@ const Layout: React.FC = () => {
 
   const isHome = location.pathname === '/';
   
+  // Check if we are in the "Admin App" section
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname === '/admin-login';
+
   // Calculate pending approvals for notifications
   const pendingCount = farmers.filter(f => !f.isApproved).length;
+
+  if (isAdminRoute) {
+    return (
+      <div className="min-h-screen bg-stone-100 font-sans text-stone-900">
+        <Outlet />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-stone-50 font-sans flex flex-col">
@@ -33,14 +44,6 @@ const Layout: React.FC = () => {
               <NavLink to="/" className={({isActive}) => `text-sm font-medium transition-colors ${isActive ? 'text-green-700' : 'text-stone-600 hover:text-green-700'}`}>Discover</NavLink>
               <NavLink to="/add-farmer" className={({isActive}) => `text-sm font-medium transition-colors ${isActive ? 'text-green-700' : 'text-stone-600 hover:text-green-700'}`}>Add Farm</NavLink>
               <NavLink to="/favorites" className={({isActive}) => `text-sm font-medium transition-colors ${isActive ? 'text-green-700' : 'text-stone-600 hover:text-green-700'}`}>Favorites</NavLink>
-              <NavLink to="/admin" className={({isActive}) => `text-sm font-medium transition-colors flex items-center gap-1.5 ${isActive ? 'text-green-700' : 'text-stone-600 hover:text-green-700'}`}>
-                Admin
-                {pendingCount > 0 && (
-                  <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm animate-pulse">
-                    {pendingCount}
-                  </span>
-                )}
-              </NavLink>
               
               <div className="h-6 w-px bg-stone-200"></div>
               
@@ -75,56 +78,64 @@ const Layout: React.FC = () => {
       {/* Main Content */}
       <main className="flex-1 pb-24 md:pb-0">
         <Outlet />
+        
+        {/* Footer Link to Admin Portal */}
+        <div className="py-8 text-center border-t border-stone-200 mt-12 bg-white">
+           <NavLink to="/admin-login" className="text-xs text-stone-400 hover:text-green-700 font-medium transition-colors">
+              Admin & Partner Portal Login
+           </NavLink>
+           <p className="text-[10px] text-stone-300 mt-2">© 2024 Riga Harvest</p>
+        </div>
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 z-50 px-6 py-2 pb-5 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="flex justify-between items-center">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 z-50 px-2 py-2 pb-5 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div className="grid grid-cols-4 gap-1 items-center">
           <NavLink 
             to="/" 
-            className={({isActive}) => `flex flex-col items-center gap-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
+            className={({isActive}) => `flex flex-col items-center gap-1 p-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
           >
-            <MapPin size={24} strokeWidth={2.5} />
-            <span className="text-[10px] font-medium">Discover</span>
+            <MapPin size={22} strokeWidth={2.5} />
+            <span className="text-[10px] font-medium">Map</span>
           </NavLink>
 
           <NavLink 
             to="/favorites" 
-            className={({isActive}) => `flex flex-col items-center gap-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
+            className={({isActive}) => `flex flex-col items-center gap-1 p-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
           >
-            <Heart size={24} strokeWidth={2.5} />
-            <span className="text-[10px] font-medium">Favorites</span>
+            <Heart size={22} strokeWidth={2.5} />
+            <span className="text-[10px] font-medium">Saved</span>
           </NavLink>
 
           <NavLink 
             to="/add-farmer" 
-            className={({isActive}) => `flex flex-col items-center gap-1 transition-colors ${isActive ? 'text-green-700' : 'text-stone-400 hover:text-green-700'}`}
+            className={({isActive}) => `flex flex-col items-center gap-1 p-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
           >
-            <PlusCircle size={24} strokeWidth={2.5} />
+            <PlusCircle size={22} strokeWidth={2.5} />
             <span className="text-[10px] font-medium">Add</span>
           </NavLink>
 
           {currentUser ? (
              <NavLink 
               to="/my-farm" 
-              className={({isActive}) => `flex flex-col items-center gap-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
+              className={({isActive}) => `flex flex-col items-center gap-1 p-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
             >
-              <Tractor size={24} strokeWidth={2.5} />
-              <span className="text-[10px] font-medium">My Farm</span>
+              <Tractor size={22} strokeWidth={2.5} />
+              <span className="text-[10px] font-medium">Profile</span>
             </NavLink>
           ) : (
              <NavLink 
               to="/login" 
-              className={({isActive}) => `flex flex-col items-center gap-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
+              className={({isActive}) => `flex flex-col items-center gap-1 p-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
             >
-              <User size={24} strokeWidth={2.5} />
+              <User size={22} strokeWidth={2.5} />
               <span className="text-[10px] font-medium">Login</span>
             </NavLink>
           )}
         </div>
       </div>
 
-      {/* Global AI Assistant */}
+      {/* Global AI Assistant - Only show on main app */}
       <AIAssistant />
     </div>
   );

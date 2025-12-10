@@ -1,8 +1,21 @@
+
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { MOCK_FARMERS } from '../constants';
 
-// Initialize the API
-const apiKey = process.env.API_KEY || ''; // Ensure this is available in your environment
+// Initialize the API safely for mobile environments
+const getApiKey = () => {
+  try {
+    // Check if process is defined to avoid ReferenceError on some mobile browsers
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      return process.env.API_KEY;
+    }
+    return '';
+  } catch (e) {
+    return '';
+  }
+};
+
+const apiKey = getApiKey();
 const ai = new GoogleGenAI({ apiKey });
 
 // System instruction to guide the AI
