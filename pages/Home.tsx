@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Map as MapIcon, List } from 'lucide-react';
+import { Search, Map as MapIcon, List, ArrowUpDown } from 'lucide-react';
 import { CATEGORIES } from '../constants';
 import FarmerCard from '../components/FarmerCard';
 import { useNavigate } from 'react-router-dom';
@@ -12,21 +12,35 @@ const Home: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [sortBy, setSortBy] = useState<'rating' | 'reviews' | 'name'>('rating');
   
   // Leaflet Map refs
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
 
-  // Filter farmers
-  const filteredFarmers = farmers.filter(farmer => {
-    const isApproved = farmer.isApproved;
-    const matchesSearch = farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          farmer.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'ALL' || 
-                            farmer.products.some(p => p.category === selectedCategory);
-    return isApproved && matchesSearch && matchesCategory;
-  });
+  // Filter & Sort farmers
+  const filteredFarmers = farmers
+    .filter(farmer => {
+      const isApproved = farmer.isApproved;
+      const matchesSearch = farmer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            farmer.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'ALL' || 
+                              farmer.products.some(p => p.category === selectedCategory);
+      return isApproved && matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'rating':
+          return b.rating - a.rating; // Descending
+        case 'reviews':
+          return b.reviewCount - a.reviewCount; // Descending
+        case 'name':
+          return a.name.localeCompare(b.name); // Ascending
+        default:
+          return 0;
+      }
+    });
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -157,21 +171,41 @@ const Home: React.FC = () => {
             />
           </div>
 
-        {/* Categories */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.value}
-              onClick={() => setSelectedCategory(cat.value)}
-              className={`whitespace-nowrap px-5 py-2 rounded-full text-xs font-semibold transition-colors ${
-                selectedCategory === cat.value
-                  ? 'bg-stone-800 text-white shadow-md' 
-                  : 'bg-white text-stone-600 border border-stone-200'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            {/* Categories */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 w-full sm:w-auto">
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat.value}
+                  onClick={() => setSelectedCategory(cat.value)}
+                  className={`whitespace-nowrap px-5 py-2 rounded-full text-xs font-semibold transition-colors ${
+                    selectedCategory === cat.value
+                      ? 'bg-stone-800 text-white shadow-md' 
+                      : 'bg-white text-stone-600 border border-stone-200'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="flex justify-end w-full sm:w-auto">
+               <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-stone-200 shadow-sm hover:border-green-300 transition-colors">
+                  <ArrowUpDown size={14} className="text-stone-400" />
+                  <span className="text-xs text-stone-500 font-medium">Sort by:</span>
+                  <select 
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="bg-transparent text-sm font-semibold text-stone-800 outline-none cursor-pointer appearance-none pr-4"
+                    style={{ backgroundImage: 'none' }}
+                  >
+                    <option value="rating">Top Rated</option>
+                    <option value="reviews">Most Reviewed</option>
+                    <option value="name">Name (A-Z)</option>
+                  </select>
+               </div>
+            </div>
         </div>
       </div>
 

@@ -63,5 +63,6 @@ export interface Notification {
   message: string;
   timestamp: Date;
   read: boolean;
-  type: 'seasonal' | 'new_arrival' | 'system';
+  type: 'seasonal' | 'new_arrival' | 'system' | 'stock_update';
+  link?: string; // Optional link to navigate to (e.g., /farmer/123)
 }

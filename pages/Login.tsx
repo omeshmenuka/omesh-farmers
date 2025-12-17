@@ -1,12 +1,12 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sprout, Lock, User } from 'lucide-react';
+import { Sprout, Lock, User, PlusCircle, Tractor, ArrowLeft } from 'lucide-react';
 import { useFarmers } from '../context/FarmerContext';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useFarmers();
+  const [view, setView] = useState<'select' | 'login'>('select');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,9 +21,57 @@ const Login: React.FC = () => {
     }
   };
 
+  if (view === 'select') {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4 animate-in fade-in duration-500">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-stone-900 font-serif mb-2">Welcome Farmer</h2>
+            <p className="text-stone-500">Select an option to continue</p>
+          </div>
+
+          <div className="grid gap-4">
+            <button
+              onClick={() => setView('login')}
+              className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 hover:border-green-500 hover:shadow-md transition-all group text-left flex items-center gap-4"
+            >
+              <div className="bg-green-100 p-4 rounded-xl text-green-700 group-hover:bg-green-600 group-hover:text-white transition-colors">
+                <Tractor size={28} />
+              </div>
+              <div>
+                <h3 className="font-bold text-stone-800 text-lg">Farmers Log In</h3>
+                <p className="text-stone-500 text-sm">Access your dashboard & stock</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/add-farmer')}
+              className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 hover:border-green-500 hover:shadow-md transition-all group text-left flex items-center gap-4"
+            >
+              <div className="bg-stone-100 p-4 rounded-xl text-stone-600 group-hover:bg-green-600 group-hover:text-white transition-colors">
+                <PlusCircle size={28} />
+              </div>
+              <div>
+                <h3 className="font-bold text-stone-800 text-lg">Add New Farmer</h3>
+                <p className="text-stone-500 text-sm">Join the marketplace today</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
-      <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-xl border border-stone-100">
+      <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-xl border border-stone-100 relative animate-in slide-in-from-right-8 duration-300">
+        <button 
+          onClick={() => setView('select')}
+          className="absolute top-8 left-8 text-stone-400 hover:text-stone-700 transition-colors"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
         <div className="text-center mb-8">
           <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-green-700">
             <Sprout size={32} />

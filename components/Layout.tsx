@@ -1,21 +1,50 @@
-
-import React from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Sprout, Bell, User, MapPin, Heart, PlusCircle, Tractor, ShieldCheck } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Sprout, Bell, User, MapPin, Heart, PlusCircle, Tractor, ShieldCheck, Check, Trash2, Package, Info } from 'lucide-react';
 import AIAssistant from './AIAssistant';
 import { useFarmers } from '../context/FarmerContext';
 
 const Layout: React.FC = () => {
   const location = useLocation();
-  const { farmers, currentUser } = useFarmers();
+  const navigate = useNavigate();
+  const { farmers, currentUser, notifications, markAsRead, markAllAsRead, clearNotifications } = useFarmers();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
   const isHome = location.pathname === '/';
-  
-  // Check if we are in the "Admin App" section
   const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname === '/admin-login';
 
-  // Calculate pending approvals for notifications
-  const pendingCount = farmers.filter(f => !f.isApproved).length;
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Click outside to close notifications
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleNotificationClick = (id: string, link?: string) => {
+    markAsRead(id);
+    if (link) {
+      navigate(link);
+      setShowNotifications(false);
+    }
+  };
+
+  const getIconForType = (type: string) => {
+    switch (type) {
+      case 'new_arrival': return <Sprout size={16} className="text-green-600" />;
+      case 'stock_update': return <Package size={16} className="text-blue-600" />;
+      case 'system': return <Info size={16} className="text-stone-600" />;
+      default: return <Bell size={16} className="text-stone-600" />;
+    }
+  };
 
   if (isAdminRoute) {
     return (
@@ -42,21 +71,77 @@ const Layout: React.FC = () => {
             {/* Desktop Nav Links */}
             <div className="flex items-center gap-8">
               <NavLink to="/" className={({isActive}) => `text-sm font-medium transition-colors ${isActive ? 'text-green-700' : 'text-stone-600 hover:text-green-700'}`}>Discover</NavLink>
-              <NavLink to="/add-farmer" className={({isActive}) => `text-sm font-medium transition-colors ${isActive ? 'text-green-700' : 'text-stone-600 hover:text-green-700'}`}>Add Farm</NavLink>
               <NavLink to="/favorites" className={({isActive}) => `text-sm font-medium transition-colors ${isActive ? 'text-green-700' : 'text-stone-600 hover:text-green-700'}`}>Favorites</NavLink>
               
               <div className="h-6 w-px bg-stone-200"></div>
               
               <div className="flex items-center gap-4">
-                 <button className="text-stone-500 hover:text-stone-800 relative group">
-                   <Bell size={20} />
-                   {pendingCount > 0 && (
-                     <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                       <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-white"></span>
-                     </span>
+                 {/* Notification Bell */}
+                 <div className="relative" ref={notificationRef}>
+                   <button 
+                     onClick={() => setShowNotifications(!showNotifications)}
+                     className="text-stone-500 hover:text-stone-800 relative group p-2 rounded-full hover:bg-stone-100 transition-colors"
+                   >
+                     <Bell size={20} />
+                     {unreadCount > 0 && (
+                       <span className="absolute top-1 right-1 flex h-3 w-3">
+                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                         <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-white"></span>
+                       </span>
+                     )}
+                   </button>
+
+                   {/* Notification Dropdown */}
+                   {showNotifications && (
+                     <div className="absolute top-12 right-0 w-80 bg-white rounded-xl shadow-xl border border-stone-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                       <div className="p-3 border-b border-stone-100 flex justify-between items-center bg-stone-50">
+                         <h3 className="text-sm font-bold text-stone-800">Notifications</h3>
+                         <div className="flex gap-2">
+                            {unreadCount > 0 && (
+                              <button onClick={markAllAsRead} className="text-xs text-green-700 hover:underline flex items-center gap-1">
+                                <Check size={12} /> Mark read
+                              </button>
+                            )}
+                            <button onClick={clearNotifications} className="text-stone-400 hover:text-red-500 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                         </div>
+                       </div>
+                       <div className="max-h-[350px] overflow-y-auto">
+                         {notifications.length === 0 ? (
+                           <div className="p-8 text-center text-stone-400 text-sm">
+                             No updates yet.
+                           </div>
+                         ) : (
+                           notifications.map((note) => (
+                             <div 
+                               key={note.id}
+                               onClick={() => handleNotificationClick(note.id, note.link)}
+                               className={`p-4 border-b border-stone-50 cursor-pointer transition-colors hover:bg-stone-50 ${note.read ? 'opacity-60' : 'bg-green-50/30'}`}
+                             >
+                               <div className="flex gap-3 items-start">
+                                 <div className={`mt-0.5 p-1.5 rounded-full ${note.read ? 'bg-stone-100' : 'bg-white shadow-sm'}`}>
+                                    {getIconForType(note.type)}
+                                 </div>
+                                 <div>
+                                   <p className={`text-sm ${note.read ? 'text-stone-600' : 'text-stone-900 font-semibold'}`}>
+                                     {note.title}
+                                   </p>
+                                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                                     {note.message}
+                                   </p>
+                                   <p className="text-[10px] text-stone-400 mt-2">
+                                     {new Date(note.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                   </p>
+                                 </div>
+                               </div>
+                             </div>
+                           ))
+                         )}
+                       </div>
+                     </div>
                    )}
-                 </button>
+                 </div>
                  
                  {currentUser ? (
                    <NavLink to="/my-farm" className="flex items-center gap-2 text-white font-medium bg-green-700 px-4 py-1.5 rounded-full hover:bg-green-800 transition-colors shadow-sm">
@@ -90,7 +175,7 @@ const Layout: React.FC = () => {
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 z-50 px-2 py-2 pb-5 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="grid grid-cols-4 gap-1 items-center">
+        <div className="grid grid-cols-3 gap-1 items-center">
           <NavLink 
             to="/" 
             className={({isActive}) => `flex flex-col items-center gap-1 p-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
@@ -107,14 +192,6 @@ const Layout: React.FC = () => {
             <span className="text-[10px] font-medium">Saved</span>
           </NavLink>
 
-          <NavLink 
-            to="/add-farmer" 
-            className={({isActive}) => `flex flex-col items-center gap-1 p-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
-          >
-            <PlusCircle size={22} strokeWidth={2.5} />
-            <span className="text-[10px] font-medium">Add</span>
-          </NavLink>
-
           {currentUser ? (
              <NavLink 
               to="/my-farm" 
@@ -129,7 +206,7 @@ const Layout: React.FC = () => {
               className={({isActive}) => `flex flex-col items-center gap-1 p-1 ${isActive ? 'text-green-700' : 'text-stone-400'}`}
             >
               <User size={22} strokeWidth={2.5} />
-              <span className="text-[10px] font-medium">Login</span>
+              <span className="text-[10px] font-medium">Sign In</span>
             </NavLink>
           )}
         </div>
