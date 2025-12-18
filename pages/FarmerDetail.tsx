@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Phone, MessageSquare, Heart, Share2, MapPin, Clock, Navigation, Check, X, Link as LinkIcon, Mail, Facebook, Twitter, CheckCircle, Copy, MessageCircle, Send, Star, Settings } from 'lucide-react';
+import { ArrowLeft, Phone, MessageSquare, Heart, Share2, MapPin, Clock, Navigation, Check, X, Link as LinkIcon, Mail, Facebook, Twitter, CheckCircle, Copy, MessageCircle, Send, Star, Settings, ShoppingBag, Loader2 } from 'lucide-react';
 import { useFarmers } from '../context/FarmerContext';
 
 const FarmerDetail: React.FC = () => {
@@ -11,7 +11,25 @@ const FarmerDetail: React.FC = () => {
   const { farmers, followedIds, toggleFollow, rateFarmer, userRatings, currentUser } = useFarmers();
   const [showShareToast, setShowShareToast] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  
+  // Contact Modal State
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [contactMode, setContactMode] = useState<'options' | 'form'>('options');
+  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(false);
+  
+  // Order Form State
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [orderForm, setOrderForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    orderDetails: ''
+  });
+
   const [hoverRating, setHoverRating] = useState(0);
   
   const farmer = farmers.find(f => f.id === id);
@@ -33,6 +51,14 @@ const FarmerDetail: React.FC = () => {
       }
     }
   }, [hash, farmer]);
+
+  // Reset contact mode when modal closes
+  useEffect(() => {
+    if (!isContactModalOpen) {
+      setContactMode('options');
+      setContactSuccess(false);
+    }
+  }, [isContactModalOpen]);
 
   if (!farmer) {
     return (
@@ -103,6 +129,90 @@ const FarmerDetail: React.FC = () => {
   const handleRate = (score: number) => {
     if (farmer.id) {
       rateFarmer(farmer.id, score);
+    }
+  };
+
+  // Contact Form Submission (General Message)
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingContact(true);
+    
+    try {
+      const response = await fetch("https://formspree.io/f/mzznnyvg", {
+        method: "POST",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          _subject: `New Message for ${farmer.name}`,
+          _replyto: contactForm.email, // Important for notifications
+          type: 'General Inquiry',
+          farmer_name: farmer.name,
+          sender_name: contactForm.name,
+          sender_email: contactForm.email,
+          message: contactForm.message
+        })
+      });
+
+      if (response.ok) {
+        setContactSuccess(true);
+        setContactForm({ name: '', email: '', message: '' });
+        setTimeout(() => {
+          setIsContactModalOpen(false);
+          setContactSuccess(false);
+          setContactMode('options');
+        }, 3000);
+      } else {
+        alert("Failed to send message. Please try again.");
+      }
+    } catch (error) {
+      alert("Error submitting form. Please check your connection.");
+    } finally {
+      setIsSubmittingContact(false);
+    }
+  };
+
+  // Order Submission Logic
+  const handleOrderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingOrder(true);
+    
+    try {
+        const response = await fetch("https://formspree.io/f/mzznnyvg", {
+            method: "POST",
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                _subject: `New Order for ${farmer?.name}`,
+                _replyto: orderForm.email, // Important for notifications
+                type: 'Order Request',
+                farmer_id: farmer?.id,
+                farmer_name: farmer?.name,
+                customer_name: orderForm.name,
+                customer_email: orderForm.email,
+                customer_phone: orderForm.phone,
+                order_details: orderForm.orderDetails
+            })
+        });
+        
+        if (response.ok) {
+            setOrderSuccess(true);
+            setOrderForm({ name: '', email: '', phone: '', orderDetails: '' });
+            setTimeout(() => {
+                setIsOrderModalOpen(false);
+                setOrderSuccess(false);
+            }, 3000);
+        } else {
+            alert("Failed to submit order. Please try again.");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Error submitting order. Please check your connection.");
+    } finally {
+        setIsSubmittingOrder(false);
     }
   };
 
@@ -314,6 +424,13 @@ const FarmerDetail: React.FC = () => {
               >
                 <MessageSquare size={20} /> Send Message
               </button>
+              
+              <button 
+                onClick={() => setIsOrderModalOpen(true)}
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors shadow-sm"
+              >
+                <ShoppingBag size={20} /> Place Order Request
+              </button>
             </div>
             
             <hr className="my-6 border-stone-100" />
@@ -394,60 +511,240 @@ const FarmerDetail: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 duration-300">
             <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-stone-50">
-              <h3 className="font-bold text-stone-800">Contact {farmer.name}</h3>
+              <h3 className="font-bold text-stone-800">
+                {contactMode === 'options' ? `Contact ${farmer.name}` : 'Send Message'}
+              </h3>
               <button 
-                onClick={() => setIsContactModalOpen(false)}
+                onClick={() => {
+                  if (contactMode === 'form') {
+                    setContactMode('options');
+                  } else {
+                    setIsContactModalOpen(false);
+                  }
+                }}
+                className="p-1 hover:bg-stone-200 rounded-full transition-colors text-stone-500"
+              >
+                {contactMode === 'form' ? <ArrowLeft size={20} /> : <X size={20} />}
+              </button>
+            </div>
+
+            <div className="p-6">
+              {contactSuccess ? (
+                <div className="text-center py-6 animate-in fade-in zoom-in">
+                  <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                     <CheckCircle size={32} className="text-green-600" />
+                  </div>
+                  <h4 className="text-lg font-bold text-stone-900">Message Sent!</h4>
+                  <p className="text-sm text-stone-500 mt-1">We've forwarded your message to {farmer.name}.</p>
+                </div>
+              ) : contactMode === 'options' ? (
+                <>
+                  <p className="text-sm text-stone-500 mb-6 text-center">
+                    Choose your preferred way to message 
+                    <br/>
+                    <span className="font-semibold text-stone-800">{farmer.phone}</span>
+                  </p>
+                  
+                  <div className="space-y-3">
+                    {/* Direct Email Form */}
+                    <button
+                      onClick={() => setContactMode('form')}
+                      className="w-full flex items-center gap-4 p-4 rounded-xl bg-orange-50 hover:bg-orange-100 transition-colors border border-orange-200 group text-left"
+                    >
+                        <div className="bg-orange-500 text-white p-2.5 rounded-full group-hover:scale-110 transition-transform">
+                            <Mail size={24} fill="currentColor" className="text-white" />
+                        </div>
+                        <span className="font-bold text-stone-800">Direct Email / Form</span>
+                    </button>
+
+                    {/* WhatsApp */}
+                    <a
+                        href={`https://wa.me/${rawPhone}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-4 p-4 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 transition-colors border border-[#25D366]/20 group"
+                    >
+                        <div className="bg-[#25D366] text-white p-2.5 rounded-full group-hover:scale-110 transition-transform">
+                            <MessageCircle size={24} fill="currentColor" className="text-white" /> 
+                        </div>
+                        <span className="font-bold text-stone-800">WhatsApp</span>
+                    </a>
+
+                    {/* Telegram */}
+                    <a
+                        href={`https://t.me/+${rawPhone}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-4 p-4 rounded-xl bg-[#0088cc]/10 hover:bg-[#0088cc]/20 transition-colors border border-[#0088cc]/20 group"
+                    >
+                        <div className="bg-[#0088cc] text-white p-2.5 rounded-full group-hover:scale-110 transition-transform">
+                            <Send size={24} fill="currentColor" className="text-white" />
+                        </div>
+                        <span className="font-bold text-stone-800">Telegram</span>
+                    </a>
+
+                    {/* SMS */}
+                    <a
+                        href={`sms:${farmer.phone}`}
+                        className="flex items-center gap-4 p-4 rounded-xl bg-stone-100 hover:bg-stone-200 transition-colors border border-stone-200 group"
+                    >
+                        <div className="bg-stone-600 text-white p-2.5 rounded-full group-hover:scale-110 transition-transform">
+                            <MessageSquare size={24} fill="currentColor" className="text-white" />
+                        </div>
+                        <span className="font-bold text-stone-800">SMS / Message</span>
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={handleContactSubmit} className="space-y-4 animate-in slide-in-from-right-8 duration-300">
+                   <div>
+                      <label className="block text-sm font-medium text-stone-700 mb-1">Your Name</label>
+                      <input 
+                        required 
+                        value={contactForm.name}
+                        onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"
+                        placeholder="John Doe"
+                      />
+                   </div>
+                   <div>
+                      <label className="block text-sm font-medium text-stone-700 mb-1">Your Email</label>
+                      <input 
+                        required 
+                        type="email"
+                        value={contactForm.email}
+                        onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"
+                        placeholder="john@example.com"
+                      />
+                   </div>
+                   <div>
+                      <label className="block text-sm font-medium text-stone-700 mb-1">Message</label>
+                      <textarea 
+                        required 
+                        rows={4}
+                        value={contactForm.message}
+                        onChange={(e) => setContactForm({...contactForm, message: e.target.value})}
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none resize-none"
+                        placeholder="Hi, I have a question about..."
+                      />
+                   </div>
+                   <button 
+                     type="submit" 
+                     disabled={isSubmittingContact}
+                     className="w-full bg-stone-900 text-white font-bold py-3 rounded-xl hover:bg-stone-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+                   >
+                     {isSubmittingContact ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                     Send Message
+                   </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Order Form Modal */}
+      {isOrderModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 duration-300 flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-stone-50">
+              <h3 className="font-bold text-stone-800 flex items-center gap-2">
+                 <ShoppingBag size={20} className="text-orange-600"/> Place Order
+              </h3>
+              <button 
+                onClick={() => setIsOrderModalOpen(false)}
                 className="p-1 hover:bg-stone-200 rounded-full transition-colors text-stone-500"
               >
                 <X size={20} />
               </button>
             </div>
-
-            <div className="p-6">
-              <p className="text-sm text-stone-500 mb-6 text-center">
-                Choose your preferred way to message 
-                <br/>
-                <span className="font-semibold text-stone-800">{farmer.phone}</span>
-              </p>
-              
-              <div className="space-y-3">
-                {/* WhatsApp */}
-                <a
-                    href={`https://wa.me/${rawPhone}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-4 p-4 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 transition-colors border border-[#25D366]/20 group"
-                >
-                    <div className="bg-[#25D366] text-white p-2.5 rounded-full group-hover:scale-110 transition-transform">
-                        <MessageCircle size={24} fill="currentColor" className="text-white" /> 
+            
+            <div className="overflow-y-auto p-6">
+                {orderSuccess ? (
+                    <div className="text-center py-10 animate-in fade-in zoom-in duration-300">
+                        <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <CheckCircle size={40} className="text-green-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-stone-900 mb-2">Request Sent!</h3>
+                        <p className="text-stone-600 text-sm max-w-xs mx-auto">
+                            Your order details have been sent to {farmer.name}. They will contact you shortly to confirm availability and pickup.
+                        </p>
                     </div>
-                    <span className="font-bold text-stone-800">WhatsApp</span>
-                </a>
+                ) : (
+                    <form onSubmit={handleOrderSubmit} className="space-y-4">
+                        <div className="bg-orange-50 p-4 rounded-xl text-xs text-orange-800 leading-relaxed border border-orange-100 mb-4">
+                            Send an order request directly to <strong>{farmer.name}</strong>. List the items you want, and they will get back to you with the total price.
+                        </div>
 
-                {/* Telegram */}
-                <a
-                    href={`https://t.me/+${rawPhone}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-4 p-4 rounded-xl bg-[#0088cc]/10 hover:bg-[#0088cc]/20 transition-colors border border-[#0088cc]/20 group"
-                >
-                    <div className="bg-[#0088cc] text-white p-2.5 rounded-full group-hover:scale-110 transition-transform">
-                        <Send size={24} fill="currentColor" className="text-white" />
-                    </div>
-                    <span className="font-bold text-stone-800">Telegram</span>
-                </a>
+                        <div>
+                            <label className="block text-sm font-medium text-stone-700 mb-1">Your Name</label>
+                            <input
+                                required
+                                type="text"
+                                name="name"
+                                value={orderForm.name}
+                                onChange={(e) => setOrderForm({...orderForm, name: e.target.value})}
+                                placeholder="Jane Doe"
+                                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                            />
+                        </div>
 
-                {/* SMS */}
-                <a
-                    href={`sms:${farmer.phone}`}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-stone-100 hover:bg-stone-200 transition-colors border border-stone-200 group"
-                >
-                    <div className="bg-stone-600 text-white p-2.5 rounded-full group-hover:scale-110 transition-transform">
-                        <MessageSquare size={24} fill="currentColor" className="text-white" />
-                    </div>
-                    <span className="font-bold text-stone-800">SMS / Message</span>
-                </a>
-              </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-stone-700 mb-1">Phone</label>
+                                <input
+                                    required
+                                    type="tel"
+                                    name="phone"
+                                    value={orderForm.phone}
+                                    onChange={(e) => setOrderForm({...orderForm, phone: e.target.value})}
+                                    placeholder="+371..."
+                                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-stone-700 mb-1">Email</label>
+                                <input
+                                    required
+                                    type="email"
+                                    name="email"
+                                    value={orderForm.email}
+                                    onChange={(e) => setOrderForm({...orderForm, email: e.target.value})}
+                                    placeholder="jane@example.com"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-stone-700 mb-1">Order Details</label>
+                            <textarea
+                                required
+                                name="message"
+                                rows={5}
+                                value={orderForm.orderDetails}
+                                onChange={(e) => setOrderForm({...orderForm, orderDetails: e.target.value})}
+                                placeholder="I would like to order:&#10;- 5kg Potatoes&#10;- 2 jars of Honey&#10;Pickup tomorrow morning."
+                                className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none resize-none transition-all"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isSubmittingOrder}
+                            className="w-full bg-stone-900 text-white font-bold py-3.5 rounded-xl hover:bg-stone-800 transition-colors shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isSubmittingOrder ? (
+                                <>
+                                    <Loader2 size={18} className="animate-spin" /> Sending...
+                                </>
+                            ) : (
+                                'Submit Order Request'
+                            )}
+                        </button>
+                    </form>
+                )}
             </div>
           </div>
         </div>

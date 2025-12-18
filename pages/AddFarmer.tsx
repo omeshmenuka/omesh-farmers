@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Upload, Loader2, CheckCircle, Crosshair, Map as MapIcon, X, Clock, User, Lock } from 'lucide-react';
+import { MapPin, Upload, Loader2, CheckCircle, Crosshair, Map as MapIcon, X, Clock, User, Lock, Mail } from 'lucide-react';
 import { CATEGORIES } from '../constants';
 import { useFarmers } from '../context/FarmerContext';
 import { Farmer, ProductCategory } from '../types';
@@ -28,6 +28,7 @@ const AddFarmer: React.FC = () => {
     address: '',
     description: '',
     phone: '',
+    email: '',
     username: '',
     password: '',
     categories: [] as string[],
@@ -127,47 +128,76 @@ const AddFarmer: React.FC = () => {
   };
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    setTimeout(() => {
-      const finalCoordinates = formData.coordinates || { 
-        lat: 56.9496 + (Math.random() - 0.5) * 0.1, 
-        lng: 24.1052 + (Math.random() - 0.5) * 0.1 
-      };
+    // 1. Prepare Data
+    const finalCoordinates = formData.coordinates || { 
+      lat: 56.9496 + (Math.random() - 0.5) * 0.1, 
+      lng: 24.1052 + (Math.random() - 0.5) * 0.1 
+    };
 
-      const newFarmer: Farmer = {
-        id: Date.now().toString(),
-        name: formData.name,
-        description: formData.description,
-        address: formData.address,
-        coordinates: finalCoordinates,
-        rating: 0,
-        reviewCount: 0,
-        imageUrl: previewImage || `https://picsum.photos/400/300?random=${Date.now()}`,
-        isOpen: true,
-        phone: formData.phone,
-        verified: false,
-        isApproved: false,
-        credentials: {
-           username: formData.username || `user${Date.now()}`,
-           password: formData.password || '123456'
+    const newFarmer: Farmer = {
+      id: Date.now().toString(),
+      name: formData.name,
+      description: formData.description,
+      address: formData.address,
+      coordinates: finalCoordinates,
+      rating: 0,
+      reviewCount: 0,
+      imageUrl: previewImage || `https://picsum.photos/400/300?random=${Date.now()}`,
+      isOpen: true,
+      phone: formData.phone,
+      email: formData.email, // Save email locally too
+      verified: false,
+      isApproved: false,
+      credentials: {
+          username: formData.username || `user${Date.now()}`,
+          password: formData.password || '123456'
+      },
+      products: formData.categories.map((cat, idx) => ({
+        id: `new-${Date.now()}-${idx}`,
+        name: `Seasonal ${cat}`,
+        category: cat as ProductCategory,
+        price: 0,
+        unit: 'kg',
+        inStock: true
+      }))
+    };
+
+    // 2. Submit to Formspree
+    try {
+      await fetch("https://formspree.io/f/mzznnyvg", {
+        method: "POST",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         },
-        products: formData.categories.map((cat, idx) => ({
-          id: `new-${Date.now()}-${idx}`,
-          name: `Seasonal ${cat}`,
-          category: cat as ProductCategory,
-          price: 0,
-          unit: 'kg',
-          inStock: true
-        }))
-      };
+        body: JSON.stringify({
+          _subject: `New Farmer Registration: ${formData.name}`,
+          _replyto: formData.email, // Important: allows you to reply directly and improves deliverability
+          farm_name: formData.name,
+          email: formData.email,
+          username: formData.username,
+          phone: formData.phone,
+          address: formData.address,
+          description: formData.description,
+          categories: formData.categories.join(', '),
+          coordinates_lat: finalCoordinates.lat,
+          coordinates_lng: finalCoordinates.lng,
+          full_json_data: JSON.stringify(newFarmer)
+        })
+      });
+    } catch (error) {
+      console.error("Failed to send to Formspree", error);
+      // We continue to add locally even if email fails to not block the UI
+    }
 
-      addFarmer(newFarmer);
-      setIsSubmitting(false);
-      setStep('success');
-    }, 1500);
+    // 3. Update Local Context
+    addFarmer(newFarmer);
+    setIsSubmitting(false);
+    setStep('success');
   };
 
   if (step === 'success') {
@@ -276,6 +306,36 @@ const AddFarmer: React.FC = () => {
           />
         </div>
 
+        {/* Contact Info Group */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Phone Number</label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="+371 20000000"
+                className="w-full px-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Email (for Admin)</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
+                <input
+                  required
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="your@email.com"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm"
+                />
+              </div>
+            </div>
+        </div>
+
         {/* Location Section */}
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">Location Details</label>
@@ -320,19 +380,6 @@ const AddFarmer: React.FC = () => {
               Location pinned: {formData.coordinates.lat.toFixed(4)}, {formData.coordinates.lng.toFixed(4)}
             </div>
           )}
-        </div>
-
-        {/* Contact */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Phone Number</label>
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleInputChange}
-            placeholder="+371 20000000"
-            className="w-full px-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm"
-          />
         </div>
 
         {/* Photo Upload */}

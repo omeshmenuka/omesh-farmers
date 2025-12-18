@@ -67,16 +67,7 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [notifications, setNotifications] = useState<Notification[]>(() => {
     try {
       const saved = localStorage.getItem('notifications');
-      return saved ? JSON.parse(saved) : [
-        {
-          id: 'welcome-msg',
-          title: 'Welcome to Riga Harvest',
-          message: 'Find the best local produce near you!',
-          timestamp: new Date(),
-          read: false,
-          type: 'system'
-        }
-      ];
+      return saved ? JSON.parse(saved) : [];
     } catch (e) {
        return [];
     }
@@ -154,7 +145,7 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     // Add new farmer to the beginning of the list, but marked as NOT approved
     setFarmers(prev => [{ ...newFarmer, isApproved: false, reviewCount: 0 }, ...prev]);
     
-    // Trigger Notification for the system
+    // Trigger Notification for the system immediately
     addNotification(
       'New Farm Registered', 
       `${newFarmer.name} has joined Riga Harvest! Check them out once approved.`,
@@ -169,22 +160,19 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const approveFarmer = (id: string) => {
-    setFarmers(prev => {
-      const updated = prev.map(f => f.id === id ? { ...f, isApproved: true } : f);
-      const farmer = prev.find(f => f.id === id);
-      if (farmer) {
-        // Notification when approved so users can actually see it
-        setTimeout(() => {
-           addNotification(
-            'New Local Producer', 
-            `${farmer.name} is now live and verified on the map.`,
-            'new_arrival',
-            `/farmer/${farmer.id}`
-          );
-        }, 0);
-      }
-      return updated;
-    });
+    // Get farmer details for notification before state update
+    const farmer = farmers.find(f => f.id === id);
+
+    setFarmers(prev => prev.map(f => f.id === id ? { ...f, isApproved: true } : f));
+    
+    if (farmer) {
+      addNotification(
+        'New Local Producer', 
+        `${farmer.name} is now live and verified on the map.`,
+        'new_arrival',
+        `/farmer/${farmer.id}`
+      );
+    }
   };
 
   const deleteFarmer = (id: string) => {
@@ -255,17 +243,14 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Stock Management Logic
   const updateProductStock = (farmerId: string, productId: string, inStock: boolean, price: number) => {
-    let farmerName = '';
-    let productName = '';
-    
+    const farmer = farmers.find(f => f.id === farmerId);
+    const product = farmer?.products.find(p => p.id === productId);
+
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
-      
-      farmerName = f.name;
 
       const updatedProducts = f.products.map(p => {
         if (p.id === productId) {
-          productName = p.name;
           return { ...p, inStock, price };
         }
         return p;
@@ -280,10 +265,10 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }));
     
     // Trigger Notification
-    if (farmerName && productName) {
+    if (farmer && product) {
        addNotification(
         'Stock Update',
-        `${farmerName} updated ${productName}: €${price.toFixed(2)} (${inStock ? 'In Stock' : 'Out of Stock'})`,
+        `${farmer.name} updated ${product.name}: €${price.toFixed(2)} (${inStock ? 'In Stock' : 'Out of Stock'})`,
         'stock_update',
         `/farmer/${farmerId}#stock`
        );
@@ -291,12 +276,11 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const addProduct = (farmerId: string, product: Product) => {
-    let farmerName = '';
+    const farmer = farmers.find(f => f.id === farmerId);
 
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
       
-      farmerName = f.name;
       const updatedProducts = [...f.products, product];
 
       if (currentUser && currentUser.id === farmerId) {
@@ -306,10 +290,10 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       return { ...f, products: updatedProducts };
     }));
 
-    if (farmerName) {
+    if (farmer) {
       addNotification(
         'Fresh Harvest Added',
-        `${farmerName} added ${product.name} to their inventory.`,
+        `${farmer.name} added ${product.name} to their inventory.`,
         'new_arrival',
         `/farmer/${farmerId}#stock`
       );
@@ -354,7 +338,7 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       followedIds, 
       toggleFollow, 
       rateFarmer, 
-      userRatings,
+      userRatings, 
       currentUser,
       login,
       logout,
