@@ -603,7 +603,7 @@ const FarmerDetail: React.FC = () => {
                         required 
                         value={contactForm.name}
                         onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
-                        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-900"
                         placeholder="John Doe"
                       />
                    </div>
@@ -614,7 +614,7 @@ const FarmerDetail: React.FC = () => {
                         type="email"
                         value={contactForm.email}
                         onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
-                        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-900"
                         placeholder="john@example.com"
                       />
                    </div>
@@ -625,7 +625,7 @@ const FarmerDetail: React.FC = () => {
                         rows={4}
                         value={contactForm.message}
                         onChange={(e) => setContactForm({...contactForm, message: e.target.value})}
-                        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none resize-none"
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none resize-none text-stone-900"
                         placeholder="Hi, I have a question about..."
                       />
                    </div>
@@ -686,7 +686,7 @@ const FarmerDetail: React.FC = () => {
                                 value={orderForm.name}
                                 onChange={(e) => setOrderForm({...orderForm, name: e.target.value})}
                                 placeholder="Jane Doe"
-                                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-stone-900"
                             />
                         </div>
 
@@ -700,7 +700,7 @@ const FarmerDetail: React.FC = () => {
                                     value={orderForm.phone}
                                     onChange={(e) => setOrderForm({...orderForm, phone: e.target.value})}
                                     placeholder="+371..."
-                                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-stone-900"
                                 />
                             </div>
                             <div>
@@ -712,7 +712,7 @@ const FarmerDetail: React.FC = () => {
                                     value={orderForm.email}
                                     onChange={(e) => setOrderForm({...orderForm, email: e.target.value})}
                                     placeholder="jane@example.com"
-                                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-stone-900"
                                 />
                             </div>
                         </div>
@@ -726,7 +726,7 @@ const FarmerDetail: React.FC = () => {
                                 value={orderForm.orderDetails}
                                 onChange={(e) => setOrderForm({...orderForm, orderDetails: e.target.value})}
                                 placeholder="I would like to order:&#10;- 5kg Potatoes&#10;- 2 jars of Honey&#10;Pickup tomorrow morning."
-                                className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none resize-none transition-all"
+                                className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none resize-none transition-all text-stone-900"
                             />
                         </div>
 

@@ -240,7 +240,7 @@ const MyFarm: React.FC = () => {
                            step="0.01"
                            value={product.price}
                            onChange={(e) => handlePriceChange(product.id, e.target.value, product.inStock)}
-                           className="w-full pl-6 pr-2 py-1.5 text-sm rounded-lg border border-stone-200 focus:border-green-500 outline-none"
+                           className="w-full pl-6 pr-2 py-1.5 text-sm rounded-lg border border-stone-200 focus:border-green-500 outline-none text-stone-900"
                          />
                        </div>
                     </div>
@@ -307,7 +307,7 @@ const MyFarm: React.FC = () => {
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
                   placeholder="e.g. Fresh Carrots"
-                  className="w-full px-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"
+                  className="w-full px-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-900"
                 />
               </div>
 
@@ -317,7 +317,7 @@ const MyFarm: React.FC = () => {
                     <select
                       value={newProduct.category}
                       onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
-                      className="w-full px-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none bg-white"
+                      className="w-full px-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none bg-white text-stone-900"
                     >
                       {CATEGORIES.filter(c => c.value !== 'ALL').map(c => (
                         <option key={c.value} value={c.value}>{c.label}</option>
@@ -329,7 +329,7 @@ const MyFarm: React.FC = () => {
                     <select
                       value={newProduct.unit}
                       onChange={(e) => setNewProduct({...newProduct, unit: e.target.value})}
-                      className="w-full px-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none bg-white"
+                      className="w-full px-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none bg-white text-stone-900"
                     >
                       <option value="kg">kg</option>
                       <option value="g">g</option>
@@ -352,7 +352,7 @@ const MyFarm: React.FC = () => {
                     value={newProduct.price}
                     onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
                     placeholder="0.00"
-                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-900"
                   />
                 </div>
               </div>
@@ -393,7 +393,7 @@ const MyFarm: React.FC = () => {
                     type="text"
                     value={profileForm.name}
                     onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
-                    className="w-full px-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"
+                    className="w-full px-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-900"
                   />
                 </div>
 
@@ -403,7 +403,7 @@ const MyFarm: React.FC = () => {
                     rows={3}
                     value={profileForm.description}
                     onChange={(e) => setProfileForm({...profileForm, description: e.target.value})}
-                    className="w-full px-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none resize-none"
+                    className="w-full px-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none resize-none text-stone-900"
                   />
                 </div>
 
@@ -416,7 +416,7 @@ const MyFarm: React.FC = () => {
                           type="text"
                           value={profileForm.phone}
                           onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
-                          className="w-full pl-10 pr-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"
+                          className="w-full pl-10 pr-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-900"
                         />
                       </div>
                   </div>
@@ -428,7 +428,7 @@ const MyFarm: React.FC = () => {
                           type="email"
                           value={profileForm.email}
                           onChange={(e) => setProfileForm({...profileForm, email: e.target.value})}
-                          className="w-full pl-10 pr-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"
+                          className="w-full pl-10 pr-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-900"
                         />
                       </div>
                   </div>
@@ -442,7 +442,7 @@ const MyFarm: React.FC = () => {
                         type="text"
                         value={profileForm.address}
                         onChange={(e) => setProfileForm({...profileForm, address: e.target.value})}
-                        className="w-full pl-10 pr-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none"
+                        className="w-full pl-10 pr-4 py-2 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-900"
                       />
                   </div>
                   <button

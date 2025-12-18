@@ -191,7 +191,6 @@ const AddFarmer: React.FC = () => {
       });
     } catch (error) {
       console.error("Failed to send to Formspree", error);
-      // We continue to add locally even if email fails to not block the UI
     }
 
     // 3. Update Local Context
@@ -237,7 +236,7 @@ const AddFarmer: React.FC = () => {
             value={formData.name}
             onChange={handleInputChange}
             placeholder="e.g. Zemes Dārzs"
-            className="w-full px-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm"
+            className="w-full px-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm text-stone-900"
           />
         </div>
 
@@ -253,7 +252,7 @@ const AddFarmer: React.FC = () => {
                   value={formData.username}
                   onChange={handleInputChange}
                   placeholder="Create username"
-                  className="w-full px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm text-stone-900"
                 />
               </div>
               <div>
@@ -265,7 +264,7 @@ const AddFarmer: React.FC = () => {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Create password"
-                  className="w-full px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm text-stone-900"
                 />
               </div>
            </div>
@@ -302,7 +301,7 @@ const AddFarmer: React.FC = () => {
             onChange={handleInputChange}
             rows={3}
             placeholder="Tell us about the produce (organic, homemade, etc.)..."
-            className="w-full px-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all resize-none shadow-sm"
+            className="w-full px-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all resize-none shadow-sm text-stone-900"
           />
         </div>
 
@@ -316,7 +315,7 @@ const AddFarmer: React.FC = () => {
                 value={formData.phone}
                 onChange={handleInputChange}
                 placeholder="+371 20000000"
-                className="w-full px-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm"
+                className="w-full px-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm text-stone-900"
               />
             </div>
             <div>
@@ -330,7 +329,7 @@ const AddFarmer: React.FC = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="your@email.com"
-                  className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm text-stone-900"
                 />
               </div>
             </div>
@@ -349,7 +348,7 @@ const AddFarmer: React.FC = () => {
                 value={formData.address}
                 onChange={handleInputChange}
                 placeholder="Address or select from map"
-                className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm"
+                className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm text-stone-900"
               />
             </div>
 

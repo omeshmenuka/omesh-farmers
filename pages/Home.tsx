@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Map as MapIcon, List, ArrowUpDown } from 'lucide-react';
 import { CATEGORIES } from '../constants';
@@ -149,7 +150,7 @@ const Home: React.FC = () => {
             >
               <MapIcon size={20} />
             </button>
-            <button 
+           <button 
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-green-700 text-white shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}
             >
@@ -167,7 +168,7 @@ const Home: React.FC = () => {
               placeholder="Search..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent shadow-sm outline-none text-sm"
+              className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent shadow-sm outline-none text-sm text-stone-900"
             />
           </div>
 
