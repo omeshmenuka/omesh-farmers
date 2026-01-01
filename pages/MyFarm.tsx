@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Package, Euro, ToggleLeft, ToggleRight, MapPin, Plus, Trash2, X, Edit, Save, Phone, Mail, Loader2, Crosshair, AlertTriangle, ShoppingCart, Calendar, MessageSquare, Archive } from 'lucide-react';
+import { LogOut, Package, Euro, ToggleLeft, ToggleRight, MapPin, Plus, Trash2, X, Edit, Save, Phone, Mail, Loader2, Crosshair, AlertTriangle, ShoppingCart, Calendar, MessageSquare, Archive, Send, MessageCircle } from 'lucide-react';
 import { useFarmers } from '../context/FarmerContext';
 import { CATEGORIES } from '../constants';
 import { Product, ProductCategory, Order } from '../types';
@@ -62,6 +62,8 @@ const MyFarm: React.FC = () => {
     }
   };
 
+  const sanitizePhone = (phone: string) => phone.replace(/[^0-9]/g, '');
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -106,10 +108,10 @@ const MyFarm: React.FC = () => {
                  <ShoppingCart size={20} className="text-orange-600" /> Incoming Order Requests
                </h3>
              </div>
-             <div className="divide-y divide-stone-100 max-h-[400px] overflow-y-auto">
+             <div className="divide-y divide-stone-100 max-h-[600px] overflow-y-auto scrollbar-hide">
                 {(currentUser.orders || []).length === 0 ? (
                   <div className="p-12 text-center text-stone-400">
-                    <p className="mb-2">No active order requests.</p>
+                    <p className="mb-2 font-medium">No active order requests.</p>
                     <p className="text-xs">Customer inquiries will appear here as soon as they are submitted.</p>
                   </div>
                 ) : (
@@ -132,11 +134,45 @@ const MyFarm: React.FC = () => {
                            <Archive size={18} />
                          </button>
                        </div>
-                       <div className="bg-stone-100 p-4 rounded-xl border border-stone-200">
+
+                       <div className="bg-stone-100 p-4 rounded-xl border border-stone-200 mb-6">
                           <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed">
                              <MessageSquare size={14} className="inline mr-2 text-stone-400" />
                              {order.details}
                           </p>
+                       </div>
+
+                       {/* Direct Response Actions */}
+                       <div className="space-y-3">
+                          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Direct Response</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                             <a 
+                               href={`tel:${order.customerPhone}`}
+                               className="flex items-center justify-center gap-2 bg-white border border-stone-200 hover:border-green-600 hover:text-green-700 p-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                             >
+                                <Phone size={14} /> Call
+                             </a>
+                             <a 
+                               href={`mailto:${order.customerEmail}?subject=Inquiry from ${currentUser.name}&body=Hello ${order.customerName}, regarding your order request: `}
+                               className="flex items-center justify-center gap-2 bg-white border border-stone-200 hover:border-blue-600 hover:text-blue-700 p-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                             >
+                                <Mail size={14} /> Email
+                             </a>
+                             <a 
+                               href={`sms:${order.customerPhone}?body=Hi ${order.customerName}, this is ${currentUser.name}. Regarding your order: `}
+                               className="flex items-center justify-center gap-2 bg-white border border-stone-200 hover:border-orange-600 hover:text-orange-700 p-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                             >
+                                <Send size={14} /> SMS
+                             </a>
+                             <a 
+                               href={`https://wa.me/${sanitizePhone(order.customerPhone)}?text=${encodeURIComponent(`Hi ${order.customerName}, this is ${currentUser.name} regarding your order request...`)}`}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="flex items-center justify-center gap-2 bg-white border border-stone-200 hover:border-[#25D366] hover:text-[#25D366] p-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                             >
+                                <MessageCircle size={14} /> WhatsApp
+                             </a>
+                          </div>
                        </div>
                     </div>
                   ))
