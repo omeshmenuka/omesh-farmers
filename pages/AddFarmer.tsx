@@ -5,6 +5,7 @@ import { MapPin, Upload, Loader2, CheckCircle, Crosshair, Map as MapIcon, X, Clo
 import { CATEGORIES } from '../constants';
 import { useFarmers } from '../context/FarmerContext';
 import { Farmer, ProductCategory } from '../types';
+import { supabase } from '../services/supabaseService';
 import L from 'leaflet';
 
 const AddFarmer: React.FC = () => {
@@ -15,6 +16,7 @@ const AddFarmer: React.FC = () => {
   const [isLocating, setIsLocating] = useState(false);
   
   // Image Upload State
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -53,10 +55,11 @@ const AddFarmer: React.FC = () => {
     });
   };
 
-  // Image Upload Handler
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image Selection Handler
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedFile(file);
       const imageUrl = URL.createObjectURL(file);
       setPreviewImage(imageUrl);
     }
@@ -127,12 +130,43 @@ const AddFarmer: React.FC = () => {
     }
   };
 
+  const uploadImageToSupabase = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `farmers/${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('farm-images')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('farm-images')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // 1. Prepare Data
+    // 1. Upload Image if exists
+    let imageUrl = `https://picsum.photos/400/300?random=${Date.now()}`;
+    if (selectedFile) {
+      const uploadedUrl = await uploadImageToSupabase(selectedFile);
+      if (uploadedUrl) imageUrl = uploadedUrl;
+    }
+
+    // 2. Prepare Data
     const finalCoordinates = formData.coordinates || { 
       lat: 56.9496 + (Math.random() - 0.5) * 0.1, 
       lng: 24.1052 + (Math.random() - 0.5) * 0.1 
@@ -146,10 +180,10 @@ const AddFarmer: React.FC = () => {
       coordinates: finalCoordinates,
       rating: 0,
       reviewCount: 0,
-      imageUrl: previewImage || `https://picsum.photos/400/300?random=${Date.now()}`,
+      imageUrl: imageUrl,
       isOpen: true,
       phone: formData.phone,
-      email: formData.email, // Save email locally too
+      email: formData.email,
       verified: false,
       isApproved: false,
       credentials: {
@@ -166,7 +200,7 @@ const AddFarmer: React.FC = () => {
       }))
     };
 
-    // 2. Submit to Formspree
+    // 3. Submit to Formspree
     try {
       await fetch("https://formspree.io/f/mzznnyvg", {
         method: "POST",
@@ -176,7 +210,7 @@ const AddFarmer: React.FC = () => {
         },
         body: JSON.stringify({
           _subject: `New Farmer Registration: ${formData.name}`,
-          _replyto: formData.email, // Important: allows you to reply directly and improves deliverability
+          _replyto: formData.email,
           farm_name: formData.name,
           email: formData.email,
           username: formData.username,
@@ -186,14 +220,14 @@ const AddFarmer: React.FC = () => {
           categories: formData.categories.join(', '),
           coordinates_lat: finalCoordinates.lat,
           coordinates_lng: finalCoordinates.lng,
-          full_json_data: JSON.stringify(newFarmer)
+          image_url: imageUrl
         })
       });
     } catch (error) {
       console.error("Failed to send to Formspree", error);
     }
 
-    // 3. Update Local Context
+    // 4. Update Local Context
     addFarmer(newFarmer);
     setIsSubmitting(false);
     setStep('success');
@@ -387,7 +421,7 @@ const AddFarmer: React.FC = () => {
            <input 
              type="file" 
              ref={fileInputRef} 
-             onChange={handleImageUpload} 
+             onChange={handleImageSelect} 
              accept="image/*" 
              className="hidden" 
            />

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Farmer, Product, Notification, Order } from '../types';
 import { MOCK_FARMERS, ADMIN_PASSWORD } from '../constants';
+import { supabase } from '../services/supabaseService';
 
 interface FarmerContextType {
   farmers: Farmer[];
@@ -88,6 +89,80 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return localStorage.getItem('isAdminLoggedIn') === 'true';
   });
 
+  // Load orders and farmers from Supabase on init
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch Farmers from Supabase
+        const { data: farmersData, error: farmersError } = await supabase
+          .from('farmers')
+          .select('*');
+
+        if (farmersError) {
+          console.error("Supabase: Error fetching farmers. Ensure you ran the SQL script in Supabase Dashboard:", farmersError.message);
+        } else if (farmersData && farmersData.length > 0) {
+          setFarmers(prev => {
+            const merged = [...prev];
+            farmersData.forEach((dbFarmer: any) => {
+              const index = merged.findIndex(f => f.id === dbFarmer.id);
+              const mappedFarmer: Farmer = {
+                id: dbFarmer.id,
+                name: dbFarmer.name,
+                description: dbFarmer.description,
+                address: dbFarmer.address,
+                coordinates: { lat: dbFarmer.lat, lng: dbFarmer.lng },
+                imageUrl: dbFarmer.image_url,
+                rating: dbFarmer.rating,
+                reviewCount: dbFarmer.review_count,
+                phone: dbFarmer.phone,
+                email: dbFarmer.email,
+                verified: dbFarmer.verified,
+                isApproved: dbFarmer.is_approved,
+                isOpen: true,
+                products: dbFarmer.products || [],
+                credentials: { username: dbFarmer.username, password: dbFarmer.password }
+              };
+
+              if (index >= 0) {
+                merged[index] = { ...merged[index], ...mappedFarmer };
+              } else {
+                merged.push(mappedFarmer);
+              }
+            });
+            return merged;
+          });
+        }
+
+        // Fetch Orders from Supabase
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select('*')
+          .order('timestamp', { ascending: false });
+
+        if (ordersError) {
+          console.error("Supabase: Error fetching orders:", ordersError.message);
+        } else if (ordersData) {
+          setFarmers(prev => prev.map(f => {
+            const farmerOrders = ordersData.filter((o: any) => o.farmer_id === f.id).map((o: any) => ({
+              id: o.id,
+              customerName: o.customer_name,
+              customerEmail: o.customer_email,
+              customerPhone: o.customer_phone,
+              details: o.details,
+              timestamp: new Date(o.timestamp),
+              status: o.status
+            }));
+            return { ...f, orders: farmerOrders };
+          }));
+        }
+      } catch (err: any) {
+        console.error("Supabase connection failed:", err.message || err);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('farmers', JSON.stringify(farmers));
   }, [farmers]);
@@ -141,39 +216,80 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setNotifications([]);
   };
 
-  const addFarmer = (newFarmer: Farmer) => {
+  const addFarmer = async (newFarmer: Farmer) => {
+    // 1. Update local state
     setFarmers(prev => [{ ...newFarmer, isApproved: false, reviewCount: 0, orders: [] }, ...prev]);
     addNotification('New Farm Registered', `${newFarmer.name} joined!`, 'system');
+
+    // 2. Persist to Supabase
+    try {
+      const { error } = await supabase
+        .from('farmers')
+        .insert([{
+          id: newFarmer.id,
+          name: newFarmer.name,
+          description: newFarmer.description,
+          address: newFarmer.address,
+          lat: newFarmer.coordinates.lat,
+          lng: newFarmer.coordinates.lng,
+          image_url: newFarmer.imageUrl,
+          phone: newFarmer.phone,
+          email: newFarmer.email,
+          username: newFarmer.credentials?.username,
+          password: newFarmer.credentials?.password,
+          products: newFarmer.products,
+          is_approved: false
+        }]);
+      
+      if (error) console.error("Error saving farmer to Supabase:", error.message);
+    } catch (err: any) {
+      console.error("Supabase farmer insert failed:", err.message || err);
+    }
   };
 
-  const toggleVerification = (id: string) => {
+  const toggleVerification = async (id: string) => {
     setFarmers(prev => prev.map(f => f.id === id ? { ...f, verified: !f.verified } : f));
+    const farmer = farmers.find(f => f.id === id);
+    if (farmer) {
+      await supabase.from('farmers').update({ verified: !farmer.verified }).eq('id', id);
+    }
   };
 
-  const approveFarmer = (id: string) => {
+  const approveFarmer = async (id: string) => {
     const farmer = farmers.find(f => f.id === id);
     setFarmers(prev => prev.map(f => f.id === id ? { ...f, isApproved: true } : f));
     if (farmer) {
       addNotification('New Local Producer', `${farmer.name} is now live!`, 'new_arrival', `/farmer/${farmer.id}`);
+      await supabase.from('farmers').update({ is_approved: true }).eq('id', id);
     }
   };
 
-  const deleteFarmer = (id: string) => {
+  const deleteFarmer = async (id: string) => {
     setFarmers(prev => prev.filter(f => f.id !== id));
+    await supabase.from('farmers').delete().eq('id', id);
   };
 
   const toggleFollow = (id: string) => {
     setFollowedIds(prev => prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]);
   };
 
-  const rateFarmer = (id: string, rating: number) => {
+  const rateFarmer = async (id: string, rating: number) => {
     setUserRatings(prev => ({ ...prev, [id]: rating }));
     setFarmers(prev => prev.map(f => {
       if (f.id !== id) return f;
       const currentCount = f.reviewCount || 0;
       const totalScore = (f.rating * currentCount) + rating;
       const newCount = currentCount + 1;
-      return { ...f, rating: parseFloat((totalScore / newCount).toFixed(1)), reviewCount: newCount };
+      const newRating = parseFloat((totalScore / newCount).toFixed(1));
+      
+      supabase.from('farmers').update({ 
+        rating: newRating, 
+        review_count: newCount 
+      }).eq('id', id).then(({error}) => {
+        if(error) console.error("Rating sync error:", error.message);
+      });
+
+      return { ...f, rating: newRating, reviewCount: newCount };
     }));
   };
 
@@ -192,58 +308,121 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const logoutAdmin = () => setIsAdminLoggedIn(false);
 
-  const updateProductStock = (farmerId: string, productId: string, inStock: boolean, price: number) => {
+  const updateProductStock = async (farmerId: string, productId: string, inStock: boolean, price: number) => {
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
       const updatedProducts = f.products.map(p => p.id === productId ? { ...p, inStock, price } : p);
+      
+      // Sync whole products array to Supabase
+      supabase.from('farmers').update({ products: updatedProducts }).eq('id', farmerId).then(({error}) => {
+        if (error) console.error("Stock sync error:", error.message);
+      });
+
       if (currentUser?.id === farmerId) setCurrentUser({ ...f, products: updatedProducts });
       return { ...f, products: updatedProducts };
     }));
   };
 
-  const addProduct = (farmerId: string, product: Product) => {
+  const addProduct = async (farmerId: string, product: Product) => {
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
       const updatedProducts = [...f.products, product];
+      
+      supabase.from('farmers').update({ products: updatedProducts }).eq('id', farmerId).then(({error}) => {
+        if (error) console.error("Add product sync error:", error.message);
+      });
+
       if (currentUser?.id === farmerId) setCurrentUser({ ...f, products: updatedProducts });
       return { ...f, products: updatedProducts };
     }));
   };
 
-  const deleteProduct = (farmerId: string, productId: string) => {
+  const deleteProduct = async (farmerId: string, productId: string) => {
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
       const updatedProducts = f.products.filter(p => p.id !== productId);
+      
+      supabase.from('farmers').update({ products: updatedProducts }).eq('id', farmerId).then(({error}) => {
+        if (error) console.error("Delete product sync error:", error.message);
+      });
+
       if (currentUser?.id === farmerId) setCurrentUser({ ...f, products: updatedProducts });
       return { ...f, products: updatedProducts };
     }));
   };
 
-  const updateFarmerProfile = (farmerId: string, updates: Partial<Farmer>) => {
+  const updateFarmerProfile = async (farmerId: string, updates: Partial<Farmer>) => {
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
       const updatedFarmer = { ...f, ...updates };
+      
+      // Prepare DB updates (map keys correctly)
+      const dbUpdates: any = {};
+      if (updates.name) dbUpdates.name = updates.name;
+      if (updates.description) dbUpdates.description = updates.description;
+      if (updates.address) dbUpdates.address = updates.address;
+      if (updates.phone) dbUpdates.phone = updates.phone;
+      if (updates.email) dbUpdates.email = updates.email;
+      if (updates.coordinates) {
+        dbUpdates.lat = updates.coordinates.lat;
+        dbUpdates.lng = updates.coordinates.lng;
+      }
+
+      supabase.from('farmers').update(dbUpdates).eq('id', farmerId).then(({error}) => {
+        if (error) console.error("Profile sync error:", error.message);
+      });
+
       if (currentUser?.id === farmerId) setCurrentUser(updatedFarmer);
       return updatedFarmer;
     }));
   };
 
-  const addOrder = (farmerId: string, order: Order) => {
+  const addOrder = async (farmerId: string, order: Order) => {
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
       const updatedOrders = [...(f.orders || []), order];
       if (currentUser?.id === farmerId) setCurrentUser({ ...f, orders: updatedOrders });
       return { ...f, orders: updatedOrders };
     }));
+
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .insert([{
+          id: order.id,
+          farmer_id: farmerId,
+          customer_name: order.customerName,
+          customer_email: order.customerEmail,
+          customer_phone: order.customerPhone,
+          details: order.details,
+          timestamp: order.timestamp.toISOString(),
+          status: order.status
+        }]);
+      
+      if (error) console.error("Error saving order to Supabase:", error.message);
+    } catch (err: any) {
+      console.error("Supabase insert failed:", err.message || err);
+    }
   };
 
-  const deleteOrder = (farmerId: string, orderId: string) => {
+  const deleteOrder = async (farmerId: string, orderId: string) => {
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
       const updatedOrders = (f.orders || []).filter(o => o.id !== orderId);
       if (currentUser?.id === farmerId) setCurrentUser({ ...f, orders: updatedOrders });
       return { ...f, orders: updatedOrders };
     }));
+
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+      
+      if (error) console.error("Error deleting order from Supabase:", error.message);
+    } catch (err: any) {
+      console.error("Supabase delete failed:", err.message || err);
+    }
   };
 
   return (

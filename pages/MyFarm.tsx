@@ -1,25 +1,44 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Package, Euro, ToggleLeft, ToggleRight, MapPin, Plus, Trash2, X, Edit, Save, Phone, Mail, Loader2, Crosshair, AlertTriangle, ShoppingCart, Calendar, MessageSquare, Archive, Send, MessageCircle } from 'lucide-react';
+import { LogOut, Package, Euro, ToggleLeft, ToggleRight, MapPin, Plus, Trash2, X, Edit, Save, Phone, Mail, Loader2, Crosshair, AlertTriangle, ShoppingCart, Calendar, MessageSquare, Archive, Send, MessageCircle, Upload } from 'lucide-react';
 import { useFarmers } from '../context/FarmerContext';
 import { CATEGORIES } from '../constants';
 import { Product, ProductCategory, Order } from '../types';
+import { supabase } from '../services/supabaseService';
 
 const MyFarm: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser, logout, updateProductStock, addProduct, deleteProduct, updateFarmerProfile, deleteFarmer, deleteOrder } = useFarmers();
+  const { currentUser, logout, updateProductStock, addProduct, deleteProduct, updateFarmerProfile, deleteOrder } = useFarmers();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const profileFileInputRef = useRef<HTMLInputElement>(null);
   
   const [newProduct, setNewProduct] = useState({ name: '', category: 'Vegetables', price: '', unit: 'kg' });
-  const [profileForm, setProfileForm] = useState({ name: '', description: '', phone: '', email: '', address: '', coordinates: null as { lat: number, lng: number } | null });
+  const [profileForm, setProfileForm] = useState({ 
+    name: '', 
+    description: '', 
+    phone: '', 
+    email: '', 
+    address: '', 
+    imageUrl: '',
+    coordinates: null as { lat: number, lng: number } | null 
+  });
 
   useEffect(() => {
     if (!currentUser) { navigate('/login'); }
     else {
-      setProfileForm({ name: currentUser.name, description: currentUser.description, phone: currentUser.phone, email: currentUser.email || '', address: currentUser.address, coordinates: currentUser.coordinates });
+      setProfileForm({ 
+        name: currentUser.name, 
+        description: currentUser.description, 
+        phone: currentUser.phone, 
+        email: currentUser.email || '', 
+        address: currentUser.address, 
+        imageUrl: currentUser.imageUrl,
+        coordinates: currentUser.coordinates 
+      });
     }
   }, [currentUser, navigate]);
 
@@ -43,15 +62,58 @@ const MyFarm: React.FC = () => {
 
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    updateFarmerProfile(currentUser.id, { name: profileForm.name, description: profileForm.description, phone: profileForm.phone, email: profileForm.email, address: profileForm.address, coordinates: profileForm.coordinates || currentUser.coordinates });
+    updateFarmerProfile(currentUser.id, { 
+      name: profileForm.name, 
+      description: profileForm.description, 
+      phone: profileForm.phone, 
+      email: profileForm.email, 
+      address: profileForm.address, 
+      imageUrl: profileForm.imageUrl,
+      coordinates: profileForm.coordinates || currentUser.coordinates 
+    });
     setIsEditProfileOpen(false);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+      const filePath = `farmers/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('farm-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('farm-images')
+        .getPublicUrl(filePath);
+
+      setProfileForm(prev => ({ ...prev, imageUrl: publicUrl }));
+    } catch (error: any) {
+      alert("Error uploading image: " + error.message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleUpdateLocation = () => {
     if (!navigator.geolocation) return;
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => { setProfileForm(p => ({ ...p, coordinates: { lat: pos.coords.latitude, lng: pos.coords.longitude }, address: `GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}` })); setIsLocating(false); },
+      (pos) => { 
+        setProfileForm(p => ({ 
+          ...p, 
+          coordinates: { lat: pos.coords.latitude, lng: pos.coords.longitude }, 
+          address: `GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}` 
+        })); 
+        setIsLocating(false); 
+      },
       () => { setIsLocating(false); alert("GPS Error"); }
     );
   };
@@ -230,13 +292,38 @@ const MyFarm: React.FC = () => {
             <div className="p-4 border-b border-stone-100 flex justify-between items-center"><h3 className="font-bold text-stone-800">Edit Farm Profile</h3><button onClick={() => setIsEditProfileOpen(false)}><X size={20} /></button></div>
             <div className="overflow-y-auto"><form onSubmit={handleProfileUpdate} className="p-6 space-y-4">
               <div><label className="text-sm font-medium">Farm Name</label><input required value={profileForm.name} onChange={(e) => setProfileForm({...profileForm, name: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-stone-200 text-stone-900" /></div>
+              
+              {/* Photo Update */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Cover Image</label>
+                <div className="flex items-center gap-4">
+                   <img src={profileForm.imageUrl} className="w-20 h-20 rounded-xl object-cover border border-stone-200" alt="Current" />
+                   <input 
+                     type="file" 
+                     ref={profileFileInputRef} 
+                     onChange={handleImageUpload} 
+                     className="hidden" 
+                     accept="image/*"
+                   />
+                   <button 
+                     type="button"
+                     disabled={isUploading}
+                     onClick={() => profileFileInputRef.current?.click()}
+                     className="flex items-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+                   >
+                     {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                     {isUploading ? 'Uploading...' : 'Change Photo'}
+                   </button>
+                </div>
+              </div>
+
               <div><label className="text-sm font-medium">Description</label><textarea rows={3} value={profileForm.description} onChange={(e) => setProfileForm({...profileForm, description: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-stone-200 text-stone-900 resize-none" /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="text-sm font-medium">Phone</label><input value={profileForm.phone} onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-stone-200 text-stone-900" /></div>
                 <div><label className="text-sm font-medium">Email</label><input type="email" value={profileForm.email} onChange={(e) => setProfileForm({...profileForm, email: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-stone-200 text-stone-900" /></div>
               </div>
               <div><label className="text-sm font-medium">Address</label><input value={profileForm.address} onChange={(e) => setProfileForm({...profileForm, address: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-stone-200 text-stone-900 mb-2" /><button type="button" onClick={handleUpdateLocation} className="text-xs font-bold text-green-700 bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 flex items-center gap-1">{isLocating ? <Loader2 size={12} className="animate-spin" /> : <Crosshair size={12} />} Update GPS</button></div>
-              <button type="submit" className="w-full bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2"><Save size={18} /> Save Changes</button>
+              <button type="submit" disabled={isUploading} className="w-full bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"><Save size={18} /> Save Changes</button>
             </form></div>
           </div>
         </div>
