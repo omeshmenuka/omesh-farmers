@@ -29,21 +29,32 @@ export interface Coordinates {
   lng: number;
 }
 
+export interface Order {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  details: string;
+  timestamp: Date;
+  status: 'pending' | 'completed' | 'cancelled';
+}
+
 export interface Farmer {
   id: string;
   name: string;
-  description: string; // Auto-translated content usually goes here
+  description: string;
   address: string;
   coordinates: Coordinates;
   products: Product[];
+  orders?: Order[]; // List of received orders
   rating: number;
-  reviewCount: number; // Total number of reviews
+  reviewCount: number;
   imageUrl: string;
   isOpen: boolean;
   phone: string;
-  email?: string; // Contact email
+  email?: string;
   verified: boolean;
-  isApproved: boolean; // Determines visibility on the main map/list
+  isApproved: boolean;
   credentials?: {
     username: string;
     password: string;
@@ -64,5 +75,5 @@ export interface Notification {
   timestamp: Date;
   read: boolean;
   type: 'seasonal' | 'new_arrival' | 'system' | 'stock_update';
-  link?: string; // Optional link to navigate to (e.g., /farmer/123)
+  link?: string;
 }

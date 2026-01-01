@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Farmer, Product, Notification } from '../types';
+import { Farmer, Product, Notification, Order } from '../types';
 import { MOCK_FARMERS, ADMIN_PASSWORD } from '../constants';
 
 interface FarmerContextType {
@@ -21,6 +21,9 @@ interface FarmerContextType {
   addProduct: (farmerId: string, product: Product) => void;
   deleteProduct: (farmerId: string, productId: string) => void;
   updateFarmerProfile: (farmerId: string, updates: Partial<Farmer>) => void;
+  // Orders
+  addOrder: (farmerId: string, order: Order) => void;
+  deleteOrder: (farmerId: string, orderId: string) => void;
   // Admin Auth
   isAdminLoggedIn: boolean;
   loginAdmin: (password: string) => boolean;
@@ -35,7 +38,6 @@ interface FarmerContextType {
 const FarmerContext = createContext<FarmerContextType | undefined>(undefined);
 
 export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Initialize state from Local Storage if available, otherwise use defaults
   const [farmers, setFarmers] = useState<Farmer[]>(() => {
     try {
       const saved = localStorage.getItem('farmers');
@@ -86,7 +88,6 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return localStorage.getItem('isAdminLoggedIn') === 'true';
   });
 
-  // Persist changes to Local Storage
   useEffect(() => {
     localStorage.setItem('farmers', JSON.stringify(farmers));
   }, [farmers]);
@@ -115,7 +116,6 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     localStorage.setItem('isAdminLoggedIn', String(isAdminLoggedIn));
   }, [isAdminLoggedIn]);
 
-  // Helper to add notifications
   const addNotification = (title: string, message: string, type: Notification['type'], link?: string) => {
     const newNote: Notification = {
       id: Date.now().toString() + Math.random().toString(),
@@ -126,7 +126,7 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       read: false,
       link
     };
-    setNotifications(prev => [newNote, ...prev].slice(0, 50)); // Keep last 50
+    setNotifications(prev => [newNote, ...prev].slice(0, 50));
   };
 
   const markAsRead = (id: string) => {
@@ -142,36 +142,19 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const addFarmer = (newFarmer: Farmer) => {
-    // Add new farmer to the beginning of the list, but marked as NOT approved
-    setFarmers(prev => [{ ...newFarmer, isApproved: false, reviewCount: 0 }, ...prev]);
-    
-    // Trigger Notification for the system immediately
-    addNotification(
-      'New Farm Registered', 
-      `${newFarmer.name} has joined Riga Harvest! Check them out once approved.`,
-      'system'
-    );
+    setFarmers(prev => [{ ...newFarmer, isApproved: false, reviewCount: 0, orders: [] }, ...prev]);
+    addNotification('New Farm Registered', `${newFarmer.name} joined!`, 'system');
   };
 
   const toggleVerification = (id: string) => {
-    setFarmers(prev => prev.map(f => 
-      f.id === id ? { ...f, verified: !f.verified } : f
-    ));
+    setFarmers(prev => prev.map(f => f.id === id ? { ...f, verified: !f.verified } : f));
   };
 
   const approveFarmer = (id: string) => {
-    // Get farmer details for notification before state update
     const farmer = farmers.find(f => f.id === id);
-
     setFarmers(prev => prev.map(f => f.id === id ? { ...f, isApproved: true } : f));
-    
     if (farmer) {
-      addNotification(
-        'New Local Producer', 
-        `${farmer.name} is now live and verified on the map.`,
-        'new_arrival',
-        `/farmer/${farmer.id}`
-      );
+      addNotification('New Local Producer', `${farmer.name} is now live!`, 'new_arrival', `/farmer/${farmer.id}`);
     }
   };
 
@@ -180,136 +163,58 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const toggleFollow = (id: string) => {
-    setFollowedIds(prev => {
-      if (prev.includes(id)) {
-        return prev.filter(fid => fid !== id);
-      } else {
-        return [...prev, id];
-      }
-    });
+    setFollowedIds(prev => prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]);
   };
 
   const rateFarmer = (id: string, rating: number) => {
-    // Allows multiple ratings for demo purposes
     setUserRatings(prev => ({ ...prev, [id]: rating }));
-
     setFarmers(prev => prev.map(f => {
       if (f.id !== id) return f;
-
       const currentCount = f.reviewCount || 0;
       const totalScore = (f.rating * currentCount) + rating;
       const newCount = currentCount + 1;
-      const newAverage = totalScore / newCount;
-
-      return {
-        ...f,
-        rating: parseFloat(newAverage.toFixed(1)),
-        reviewCount: newCount
-      };
+      return { ...f, rating: parseFloat((totalScore / newCount).toFixed(1)), reviewCount: newCount };
     }));
   };
 
-  // Auth Logic
   const login = (username: string, password: string): boolean => {
-    const foundFarmer = farmers.find(f => 
-      f.credentials && 
-      f.credentials.username === username && 
-      f.credentials.password === password
-    );
-
-    if (foundFarmer) {
-      setCurrentUser(foundFarmer);
-      return true;
-    }
+    const foundFarmer = farmers.find(f => f.credentials?.username === username && f.credentials?.password === password);
+    if (foundFarmer) { setCurrentUser(foundFarmer); return true; }
     return false;
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-  };
+  const logout = () => setCurrentUser(null);
 
-  // Admin Auth Logic
   const loginAdmin = (password: string): boolean => {
-    if (password === ADMIN_PASSWORD) {
-      setIsAdminLoggedIn(true);
-      return true;
-    }
+    if (password === ADMIN_PASSWORD) { setIsAdminLoggedIn(true); return true; }
     return false;
   };
 
-  const logoutAdmin = () => {
-    setIsAdminLoggedIn(false);
-  };
+  const logoutAdmin = () => setIsAdminLoggedIn(false);
 
-  // Stock Management Logic
   const updateProductStock = (farmerId: string, productId: string, inStock: boolean, price: number) => {
-    const farmer = farmers.find(f => f.id === farmerId);
-    const product = farmer?.products.find(p => p.id === productId);
-
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
-
-      const updatedProducts = f.products.map(p => {
-        if (p.id === productId) {
-          return { ...p, inStock, price };
-        }
-        return p;
-      });
-
-      // If current user is the one being updated, update local state too
-      if (currentUser && currentUser.id === farmerId) {
-        setCurrentUser({ ...f, products: updatedProducts });
-      }
-
+      const updatedProducts = f.products.map(p => p.id === productId ? { ...p, inStock, price } : p);
+      if (currentUser?.id === farmerId) setCurrentUser({ ...f, products: updatedProducts });
       return { ...f, products: updatedProducts };
     }));
-    
-    // Trigger Notification
-    if (farmer && product) {
-       addNotification(
-        'Stock Update',
-        `${farmer.name} updated ${product.name}: €${price.toFixed(2)} (${inStock ? 'In Stock' : 'Out of Stock'})`,
-        'stock_update',
-        `/farmer/${farmerId}#stock`
-       );
-    }
   };
 
   const addProduct = (farmerId: string, product: Product) => {
-    const farmer = farmers.find(f => f.id === farmerId);
-
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
-      
       const updatedProducts = [...f.products, product];
-
-      if (currentUser && currentUser.id === farmerId) {
-        setCurrentUser({ ...f, products: updatedProducts });
-      }
-
+      if (currentUser?.id === farmerId) setCurrentUser({ ...f, products: updatedProducts });
       return { ...f, products: updatedProducts };
     }));
-
-    if (farmer) {
-      addNotification(
-        'Fresh Harvest Added',
-        `${farmer.name} added ${product.name} to their inventory.`,
-        'new_arrival',
-        `/farmer/${farmerId}#stock`
-      );
-    }
   };
 
   const deleteProduct = (farmerId: string, productId: string) => {
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
-
       const updatedProducts = f.products.filter(p => p.id !== productId);
-
-      if (currentUser && currentUser.id === farmerId) {
-        setCurrentUser({ ...f, products: updatedProducts });
-      }
-
+      if (currentUser?.id === farmerId) setCurrentUser({ ...f, products: updatedProducts });
       return { ...f, products: updatedProducts };
     }));
   };
@@ -317,42 +222,35 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const updateFarmerProfile = (farmerId: string, updates: Partial<Farmer>) => {
     setFarmers(prev => prev.map(f => {
       if (f.id !== farmerId) return f;
-      
       const updatedFarmer = { ...f, ...updates };
-      
-      if (currentUser && currentUser.id === farmerId) {
-        setCurrentUser(updatedFarmer);
-      }
-      
+      if (currentUser?.id === farmerId) setCurrentUser(updatedFarmer);
       return updatedFarmer;
+    }));
+  };
+
+  const addOrder = (farmerId: string, order: Order) => {
+    setFarmers(prev => prev.map(f => {
+      if (f.id !== farmerId) return f;
+      const updatedOrders = [...(f.orders || []), order];
+      if (currentUser?.id === farmerId) setCurrentUser({ ...f, orders: updatedOrders });
+      return { ...f, orders: updatedOrders };
+    }));
+  };
+
+  const deleteOrder = (farmerId: string, orderId: string) => {
+    setFarmers(prev => prev.map(f => {
+      if (f.id !== farmerId) return f;
+      const updatedOrders = (f.orders || []).filter(o => o.id !== orderId);
+      if (currentUser?.id === farmerId) setCurrentUser({ ...f, orders: updatedOrders });
+      return { ...f, orders: updatedOrders };
     }));
   };
 
   return (
     <FarmerContext.Provider value={{ 
-      farmers, 
-      addFarmer, 
-      toggleVerification, 
-      approveFarmer, 
-      deleteFarmer, 
-      followedIds, 
-      toggleFollow, 
-      rateFarmer, 
-      userRatings, 
-      currentUser,
-      login,
-      logout,
-      updateProductStock,
-      addProduct,
-      deleteProduct,
-      updateFarmerProfile,
-      isAdminLoggedIn,
-      loginAdmin,
-      logoutAdmin,
-      notifications,
-      markAsRead,
-      markAllAsRead,
-      clearNotifications
+      farmers, addFarmer, toggleVerification, approveFarmer, deleteFarmer, followedIds, toggleFollow, rateFarmer, userRatings, 
+      currentUser, login, logout, updateProductStock, addProduct, deleteProduct, updateFarmerProfile, addOrder, deleteOrder,
+      isAdminLoggedIn, loginAdmin, logoutAdmin, notifications, markAsRead, markAllAsRead, clearNotifications
     }}>
       {children}
     </FarmerContext.Provider>
@@ -361,8 +259,6 @@ export const FarmerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
 export const useFarmers = () => {
   const context = useContext(FarmerContext);
-  if (!context) {
-    throw new Error('useFarmers must be used within a FarmerProvider');
-  }
+  if (!context) throw new Error('useFarmers must be used within a FarmerProvider');
   return context;
 };
