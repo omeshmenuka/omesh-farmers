@@ -24,6 +24,7 @@ export const sendMessageToAI = async (message: string): Promise<string> => {
 
   try {
     // Using gemini-3-flash-preview for basic text tasks
+    // Calling generateContent directly on ai.models
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: message,

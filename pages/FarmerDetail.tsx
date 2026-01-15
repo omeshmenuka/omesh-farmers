@@ -95,6 +95,7 @@ const FarmerDetail: React.FC = () => {
   };
 
   const copyToClipboard = () => {
+    // Fixed withText to writeText
     navigator.clipboard.writeText(shareUrl).then(() => {
       setShowShareToast(true);
       setTimeout(() => setShowShareToast(false), 2000);
@@ -114,7 +115,6 @@ const FarmerDetail: React.FC = () => {
     setIsSubmittingOrder(true);
     
     const selectedList = Object.entries(orderItems)
-      // Fix: cast qty to number to avoid comparison error
       .filter(([_, qty]) => (qty as number) > 0)
       .map(([id, qty]) => {
         const p = farmer.products.find(item => item.id === id);
@@ -152,7 +152,6 @@ const FarmerDetail: React.FC = () => {
     }, 1200);
   };
 
-  // Fix: cast value to number to avoid comparison error
   const hasItemsInCart = Object.values(orderItems).some(v => (v as number) > 0);
 
   return (
@@ -268,12 +267,49 @@ const FarmerDetail: React.FC = () => {
 
               {orderStep === 'details' && (
                 <form id="order-form" onSubmit={handleOrderSubmit} className="space-y-4">
-                  <div><label className="block text-sm font-bold text-stone-700 mb-1">Your Name</label><input required value={orderForm.name} onChange={e => setOrderForm({...orderForm, name: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-200 outline-none focus:ring-2 focus:ring-orange-500" placeholder="Jane Doe" /></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-bold text-stone-700 mb-1">Email</label><input required type="email" value={orderForm.email} onChange={e => setOrderForm({...orderForm, email: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-200 outline-none focus:ring-2 focus:ring-orange-500" placeholder="jane@example.com" /></div>
-                    <div><label className="block text-sm font-bold text-stone-700 mb-1">Phone</label><input required value={orderForm.phone} onChange={e => setOrderForm({...orderForm, phone: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-200 outline-none focus:ring-2 focus:ring-orange-500" placeholder="+371..." /></div>
+                  <div>
+                    <label className="block text-sm font-bold text-stone-700 mb-1">Your Name</label>
+                    <input 
+                      required 
+                      value={orderForm.name} 
+                      onChange={e => setOrderForm({...orderForm, name: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 outline-none focus:ring-2 focus:ring-orange-500" 
+                      placeholder="Jane Doe" 
+                    />
                   </div>
-                  <div><label className="block text-sm font-bold text-stone-700 mb-1">Note for Farmer</label><textarea value={orderForm.note} onChange={e => setOrderForm({...orderForm, note: e.target.value})} rows={3} className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-200 outline-none focus:ring-2 focus:ring-orange-500 resize-none" placeholder="Prefer delivery in the morning..." /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-stone-700 mb-1">Email</label>
+                      <input 
+                        required 
+                        type="email" 
+                        value={orderForm.email} 
+                        onChange={e => setOrderForm({...orderForm, email: e.target.value})} 
+                        className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 outline-none focus:ring-2 focus:ring-orange-500" 
+                        placeholder="jane@example.com" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-stone-700 mb-1">Phone</label>
+                      <input 
+                        required 
+                        value={orderForm.phone} 
+                        onChange={e => setOrderForm({...orderForm, phone: e.target.value})} 
+                        className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 outline-none focus:ring-2 focus:ring-orange-500" 
+                        placeholder="+371..." 
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-stone-700 mb-1">Note for Farmer</label>
+                    <textarea 
+                      value={orderForm.note} 
+                      onChange={e => setOrderForm({...orderForm, note: e.target.value})} 
+                      rows={3} 
+                      className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 outline-none focus:ring-2 focus:ring-orange-500 resize-none" 
+                      placeholder="Prefer delivery in the morning..." 
+                    />
+                  </div>
                 </form>
               )}
 
@@ -317,9 +353,29 @@ const FarmerDetail: React.FC = () => {
                   <h3 className="text-xl font-bold text-stone-900">{t('message')} {farmer.name}</h3>
                   <button type="button" onClick={() => setIsContactModalOpen(false)}><X size={20} /></button>
                 </div>
-                <input required value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})} className="w-full px-4 py-3 rounded-xl border" placeholder="Your Name" />
-                <input required type="email" value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})} className="w-full px-4 py-3 rounded-xl border" placeholder="Email" />
-                <textarea required rows={4} value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})} className="w-full px-4 py-3 rounded-xl border resize-none" placeholder="How can we help?" />
+                <input 
+                  required 
+                  value={contactForm.name} 
+                  onChange={e => setContactForm({...contactForm, name: e.target.value})} 
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 text-stone-900 outline-none focus:ring-2 focus:ring-green-600" 
+                  placeholder="Your Name" 
+                />
+                <input 
+                  required 
+                  type="email" 
+                  value={contactForm.email} 
+                  onChange={e => setContactForm({...contactForm, email: e.target.value})} 
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 text-stone-900 outline-none focus:ring-2 focus:ring-green-600" 
+                  placeholder="Email" 
+                />
+                <textarea 
+                  required 
+                  rows={4} 
+                  value={contactForm.message} 
+                  onChange={e => setContactForm({...contactForm, message: e.target.value})} 
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 text-stone-900 outline-none focus:ring-2 focus:ring-green-600 resize-none" 
+                  placeholder="How can we help?" 
+                />
                 <button type="submit" disabled={isSubmittingContact} className="w-full bg-green-700 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg">{isSubmittingContact ? <Loader2 className="animate-spin" /> : <><Send size={18} /> Send Inquiry</>}</button>
               </form>
             )}
