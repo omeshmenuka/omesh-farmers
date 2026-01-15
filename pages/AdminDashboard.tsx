@@ -1,11 +1,11 @@
 
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Users, TrendingUp, AlertCircle, ShieldCheck, Check, X, Trash2, ExternalLink, Eye } from 'lucide-react';
+import { Users, TrendingUp, AlertCircle, ShieldCheck, Check, X, Trash2, ExternalLink, Eye, Database, Activity } from 'lucide-react';
 import { useFarmers } from '../context/FarmerContext';
 
 const AdminDashboard: React.FC = () => {
-  const { farmers, toggleVerification, approveFarmer, deleteFarmer } = useFarmers();
+  const { farmers, toggleVerification, approveFarmer, deleteFarmer, supabaseStatus } = useFarmers();
   
   // Derived Stats from Context
   const totalFarmers = farmers.filter(f => f.isApproved).length;
@@ -32,15 +32,37 @@ const AdminDashboard: React.FC = () => {
   const COLORS = ['#15803d', '#16a34a', '#4ade80', '#bbf7d0'];
 
   const handleInspect = (id: string) => {
-    // Opens in the main app view
     window.open(`#/farmer/${id}`, '_blank');
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-          <h1 className="text-3xl font-bold text-stone-900">Dashboard Overview</h1>
-          <p className="text-stone-600">Real-time platform analytics</p>
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-stone-900 font-serif">Dashboard Overview</h1>
+            <p className="text-stone-600">Real-time platform analytics</p>
+          </div>
+          
+          <div className="flex items-center gap-3">
+             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+               supabaseStatus === 'connected' ? 'bg-green-50 text-green-700 border-green-200' : 
+               supabaseStatus === 'connecting' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+               'bg-red-50 text-red-700 border-red-200'
+             }`}>
+                <Database size={14} />
+                {supabaseStatus === 'connected' ? 'Supabase Connected' : 
+                 supabaseStatus === 'connecting' ? 'Connecting to Supabase...' : 
+                 'Supabase Connection Error'}
+                <div className={`w-2 h-2 rounded-full ${
+                  supabaseStatus === 'connected' ? 'bg-green-500 animate-pulse' : 
+                  supabaseStatus === 'connecting' ? 'bg-yellow-500 animate-bounce' : 
+                  'bg-red-500'
+                }`}></div>
+             </div>
+             <div className="bg-white px-3 py-1.5 rounded-full text-xs font-bold border border-stone-200 text-stone-500 flex items-center gap-2">
+                <Activity size={14} /> Live
+             </div>
+          </div>
       </div>
 
       {/* Stats Cards */}
@@ -96,7 +118,7 @@ const AdminDashboard: React.FC = () => {
 
       {/* PENDING APPROVALS SECTION */}
       {pendingApprovals.length > 0 && (
-        <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
            <div className="p-6 border-b border-yellow-100 flex items-center gap-2">
              <AlertCircle className="text-yellow-700" size={24} />
              <h3 className="text-lg font-bold text-yellow-900">New Submissions Pending Approval</h3>
@@ -121,13 +143,13 @@ const AdminDashboard: React.FC = () => {
                        <div className="flex items-center gap-2">
                          <button 
                            onClick={() => approveFarmer(farmer.id)}
-                           className="flex items-center gap-1 px-4 py-2 rounded-lg text-xs font-bold bg-green-600 text-white hover:bg-green-700 shadow-sm"
+                           className="flex items-center gap-1 px-4 py-2 rounded-lg text-xs font-bold bg-green-600 text-white hover:bg-green-700 shadow-sm transition-all active:scale-95"
                          >
                            <Check size={14} /> Accept
                          </button>
                          <button 
                            onClick={() => deleteFarmer(farmer.id)}
-                           className="flex items-center gap-1 px-4 py-2 rounded-lg text-xs font-bold bg-red-100 text-red-600 hover:bg-red-200"
+                           className="flex items-center gap-1 px-4 py-2 rounded-lg text-xs font-bold bg-red-100 text-red-600 hover:bg-red-200 transition-all active:scale-95"
                          >
                            <X size={14} /> Reject
                          </button>

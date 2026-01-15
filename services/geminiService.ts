@@ -1,22 +1,9 @@
 
-import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { MOCK_FARMERS } from '../constants';
 
-// Initialize the API safely for mobile environments
-const getApiKey = () => {
-  try {
-    // Check if process is defined to avoid ReferenceError on some mobile browsers
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-      return process.env.API_KEY;
-    }
-    return '';
-  } catch (e) {
-    return '';
-  }
-};
-
-const apiKey = getApiKey();
-const ai = new GoogleGenAI({ apiKey });
+// The API key must be obtained exclusively from the environment variable process.env.API_KEY.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 // System instruction to guide the AI
 const SYSTEM_INSTRUCTION = `
@@ -30,29 +17,23 @@ ${JSON.stringify(MOCK_FARMERS.map(f => ({ name: f.name, location: f.address, pro
 4. If asked to translate, provide translations in English, Latvian, or Russian.
 `;
 
-let chatSession: Chat | null = null;
-
-export const getChatSession = (): Chat => {
-  if (!chatSession) {
-    chatSession = ai.chats.create({
-      model: 'gemini-2.5-flash',
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-      },
-    });
-  }
-  return chatSession;
-};
-
 export const sendMessageToAI = async (message: string): Promise<string> => {
-  if (!apiKey) {
+  if (!process.env.API_KEY) {
     return "I'm sorry, I cannot connect to the AI service right now (Missing API Key).";
   }
 
   try {
-    const chat = getChatSession();
-    const result: GenerateContentResponse = await chat.sendMessage({ message });
-    return result.text || "I didn't catch that. Could you try again?";
+    // Using gemini-3-flash-preview for basic text tasks
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: message,
+      config: {
+        systemInstruction: SYSTEM_INSTRUCTION,
+      },
+    });
+    
+    // .text is a property, not a method.
+    return response.text || "I didn't catch that. Could you try again?";
   } catch (error) {
     console.error("Gemini Error:", error);
     return "I'm having trouble connecting to the local network. Please try again later.";
@@ -60,13 +41,14 @@ export const sendMessageToAI = async (message: string): Promise<string> => {
 };
 
 export const translateText = async (text: string, targetLang: string): Promise<string> => {
-   if (!apiKey) return text;
+   if (!process.env.API_KEY) return text;
 
    try {
      const response = await ai.models.generateContent({
-       model: 'gemini-2.5-flash',
+       model: 'gemini-3-flash-preview',
        contents: `Translate the following text to ${targetLang}: "${text}"`,
      });
+     // .text is a property, not a method.
      return response.text || text;
    } catch (e) {
      return text;

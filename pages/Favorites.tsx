@@ -1,12 +1,15 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MapPin } from 'lucide-react';
 import { useFarmers } from '../context/FarmerContext';
+import { useLanguage } from '../context/LanguageContext';
 import FarmerCard from '../components/FarmerCard';
 
 const Favorites: React.FC = () => {
   const navigate = useNavigate();
   const { farmers, followedIds } = useFarmers();
+  const { t } = useLanguage();
 
   const favoriteFarmers = farmers.filter(f => followedIds.includes(f.id));
 
@@ -14,10 +17,10 @@ const Favorites: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-stone-900 font-serif">
-          My Favorites
+          {t('favorites_title')}
         </h1>
         <p className="text-stone-500 text-sm mt-1">
-          Farms and markets you follow
+          {t('favorites_subtitle')}
         </p>
       </div>
 
@@ -36,16 +39,16 @@ const Favorites: React.FC = () => {
           <div className="bg-stone-100 p-6 rounded-full text-stone-300 mb-6">
             <Heart size={64} fill="currentColor" />
           </div>
-          <h2 className="text-xl font-bold text-stone-800 mb-2 font-serif">No favorites yet</h2>
+          <h2 className="text-xl font-bold text-stone-800 mb-2 font-serif">{t('no_favorites')}</h2>
           <p className="text-stone-500 max-w-xs mb-8 leading-relaxed">
-            Start following local farmers to build your personal list of sustainable food sources.
+            {t('favorites_desc')}
           </p>
           <button 
             onClick={() => navigate('/')}
             className="bg-green-700 text-white px-8 py-3 rounded-xl font-medium hover:bg-green-800 transition-colors flex items-center gap-2 shadow-lg active:scale-95 transform duration-200"
           >
             <MapPin size={18} />
-            Discover Producers
+            {t('discover_producers')}
           </button>
         </div>
       )}

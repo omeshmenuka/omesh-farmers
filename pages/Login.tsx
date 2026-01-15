@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sprout, Lock, User, PlusCircle, Tractor, ArrowLeft } from 'lucide-react';
+import { Sprout, Lock, User, PlusCircle, Tractor, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useFarmers } from '../context/FarmerContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useFarmers();
+  const { t } = useLanguage();
   const [view, setView] = useState<'select' | 'login'>('select');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +20,7 @@ const Login: React.FC = () => {
     if (success) {
       navigate('/my-farm');
     } else {
-      setError('Invalid username or password');
+      setError(t('invalid_credentials'));
     }
   };
 
@@ -27,8 +29,8 @@ const Login: React.FC = () => {
       <div className="min-h-[80vh] flex items-center justify-center px-4 animate-in fade-in duration-500">
         <div className="w-full max-w-md space-y-6">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-stone-900 font-serif mb-2">Welcome Farmer</h2>
-            <p className="text-stone-500">Select an option to continue</p>
+            <h2 className="text-3xl font-bold text-stone-900 font-serif mb-2">{t('welcome_farmer')}</h2>
+            <p className="text-stone-500">{t('select_option')}</p>
           </div>
 
           <div className="grid gap-4">
@@ -40,8 +42,8 @@ const Login: React.FC = () => {
                 <Tractor size={28} />
               </div>
               <div>
-                <h3 className="font-bold text-stone-800 text-lg">Farmers Log In</h3>
-                <p className="text-stone-500 text-sm">Access your dashboard & stock</p>
+                <h3 className="font-bold text-stone-800 text-lg">{t('farmers_login')}</h3>
+                <p className="text-stone-500 text-sm">{t('farmers_login_desc')}</p>
               </div>
             </button>
 
@@ -53,10 +55,23 @@ const Login: React.FC = () => {
                 <PlusCircle size={28} />
               </div>
               <div>
-                <h3 className="font-bold text-stone-800 text-lg">Add New Farmer</h3>
-                <p className="text-stone-500 text-sm">Join the marketplace today</p>
+                <h3 className="font-bold text-stone-800 text-lg">{t('add_new_farmer')}</h3>
+                <p className="text-stone-500 text-sm">{t('add_new_farmer_desc')}</p>
               </div>
             </button>
+          </div>
+
+          <div className="pt-8 text-center">
+            <div className="inline-flex items-center gap-2 text-stone-400 text-sm">
+              <span>{t('admin_access')}</span>
+              <button 
+                onClick={() => navigate('/admin-login')}
+                className="text-stone-600 hover:text-green-700 font-bold flex items-center gap-1 transition-colors"
+              >
+                <ShieldCheck size={14} />
+                {t('admin_portal')}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -77,8 +92,8 @@ const Login: React.FC = () => {
           <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-green-700">
             <Sprout size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-stone-900 font-serif">Farmer Login</h2>
-          <p className="text-stone-500 mt-2">Manage your farm profile and stock</p>
+          <h2 className="text-2xl font-bold text-stone-900 font-serif">{t('farmer_login_title')}</h2>
+          <p className="text-stone-500 mt-2">{t('farmer_login_subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -89,7 +104,7 @@ const Login: React.FC = () => {
           )}
           
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Username</label>
+            <label className="block text-sm font-medium text-stone-700 mb-1">{t('username')}</label>
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
               <input
@@ -97,13 +112,13 @@ const Login: React.FC = () => {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-11 pr-4 py-3 rounded-xl bg-stone-50 border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-900"
-                placeholder="Enter your username"
+                placeholder={t('enter_username')}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-stone-700 mb-1">{t('password')}</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
               <input
@@ -111,7 +126,7 @@ const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-11 pr-4 py-3 rounded-xl bg-stone-50 border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-stone-900"
-                placeholder="Enter your password"
+                placeholder={t('enter_password')}
               />
             </div>
           </div>
@@ -120,12 +135,12 @@ const Login: React.FC = () => {
             type="submit"
             className="w-full bg-green-700 text-white font-bold py-3 rounded-xl hover:bg-green-800 transition-colors shadow-lg active:scale-[0.98]"
           >
-            Sign In
+            {t('sign_in')}
           </button>
         </form>
 
         <div className="mt-6 text-center text-xs text-stone-400">
-          <p>Demo Credentials: user "farm1", pass "123"</p>
+          <p>{t('demo_credentials')}: user "farm1", pass "123"</p>
         </div>
       </div>
     </div>

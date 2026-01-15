@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, Upload, Loader2, CheckCircle, Crosshair, Map as MapIcon, X, Clock, User, Lock, Mail } from 'lucide-react';
 import { CATEGORIES } from '../constants';
 import { useFarmers } from '../context/FarmerContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Farmer, ProductCategory } from '../types';
 import { supabase } from '../services/supabaseService';
 import L from 'leaflet';
@@ -11,16 +12,15 @@ import L from 'leaflet';
 const AddFarmer: React.FC = () => {
   const navigate = useNavigate();
   const { addFarmer } = useFarmers();
+  const { t } = useLanguage();
   const [step, setStep] = useState<'form' | 'success'>('form');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   
-  // Image Upload State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Map Picker State
   const [showMapPicker, setShowMapPicker] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -36,6 +36,16 @@ const AddFarmer: React.FC = () => {
     categories: [] as string[],
     coordinates: null as { lat: number; lng: number } | null
   });
+
+  const catMap: any = { 
+    'Vegetables': t('vegetables'), 
+    'Fruits': t('fruits'), 
+    'Dairy': t('dairy'), 
+    'Honey': t('honey'),
+    'Meat': t('meat'),
+    'Bakery': t('bakery'),
+    'Crafts': t('crafts')
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -55,68 +65,42 @@ const AddFarmer: React.FC = () => {
     });
   };
 
-  // Image Selection Handler
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      const imageUrl = URL.createObjectURL(file);
-      setPreviewImage(imageUrl);
+      setPreviewImage(URL.createObjectURL(file));
     }
   };
 
-  // Geolocation Handler
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) return;
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
+      (pos) => {
         setFormData(prev => ({
           ...prev,
-          coordinates: { lat: latitude, lng: longitude },
-          address: `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`
+          coordinates: { lat: pos.coords.latitude, lng: pos.coords.longitude },
+          address: `Lat: ${pos.coords.latitude.toFixed(4)}, Lng: ${pos.coords.longitude.toFixed(4)}`
         }));
         setIsLocating(false);
       },
-      (error) => {
-        console.error("Error getting location:", error);
-        setIsLocating(false);
-        alert("Could not access location. Please ensure permissions are granted.");
-      }
+      () => setIsLocating(false)
     );
   };
 
-  // Map Picker Effects
   useEffect(() => {
     if (showMapPicker && mapContainerRef.current && !mapInstanceRef.current) {
-      const initialLat = formData.coordinates?.lat || 56.9496;
-      const initialLng = formData.coordinates?.lng || 24.1052;
-      
-      const map = L.map(mapContainerRef.current).setView([initialLat, initialLng], 12);
-      
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
-
+      const lat = formData.coordinates?.lat || 56.9496;
+      const lng = formData.coordinates?.lng || 24.1052;
+      const map = L.map(mapContainerRef.current).setView([lat, lng], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
       mapInstanceRef.current = map;
     }
-
     if (showMapPicker && mapInstanceRef.current) {
-      setTimeout(() => {
-        mapInstanceRef.current?.invalidateSize();
-      }, 100);
+      setTimeout(() => mapInstanceRef.current?.invalidateSize(), 100);
     }
   }, [showMapPicker]);
-
-  useEffect(() => {
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, []);
 
   const handleConfirmLocation = () => {
     if (mapInstanceRef.current) {
@@ -124,33 +108,22 @@ const AddFarmer: React.FC = () => {
       setFormData(prev => ({
         ...prev,
         coordinates: { lat: center.lat, lng: center.lng },
-        address: prev.address || `Selected Location (${center.lat.toFixed(4)}, ${center.lng.toFixed(4)})`
+        address: prev.address || `Lat: ${center.lat.toFixed(4)}, Lng: ${center.lng.toFixed(4)}`
       }));
       setShowMapPicker(false);
     }
   };
 
-  const uploadImageToSupabase = async (file: File): Promise<string | null> => {
+  const uploadToSupabase = async (file: File): Promise<string | null> => {
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
       const filePath = `farmers/${fileName}`;
-
-      const { error: uploadError, data } = await supabase.storage
-        .from('farm-images')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('farm-images')
-        .getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
+      const { error } = await supabase.storage.from('farm-images').upload(filePath, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from('farm-images').getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (e) {
+      console.error("Upload error:", e);
       return null;
     }
   };
@@ -159,25 +132,20 @@ const AddFarmer: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // 1. Upload Image if exists
     let imageUrl = `https://picsum.photos/400/300?random=${Date.now()}`;
     if (selectedFile) {
-      const uploadedUrl = await uploadImageToSupabase(selectedFile);
-      if (uploadedUrl) imageUrl = uploadedUrl;
+      const uploaded = await uploadToSupabase(selectedFile);
+      if (uploaded) imageUrl = uploaded;
     }
 
-    // 2. Prepare Data
-    const finalCoordinates = formData.coordinates || { 
-      lat: 56.9496 + (Math.random() - 0.5) * 0.1, 
-      lng: 24.1052 + (Math.random() - 0.5) * 0.1 
-    };
+    const finalCoords = formData.coordinates || { lat: 56.9496, lng: 24.1052 };
 
     const newFarmer: Farmer = {
       id: Date.now().toString(),
       name: formData.name,
       description: formData.description,
       address: formData.address,
-      coordinates: finalCoordinates,
+      coordinates: finalCoords,
       rating: 0,
       reviewCount: 0,
       imageUrl: imageUrl,
@@ -187,12 +155,12 @@ const AddFarmer: React.FC = () => {
       verified: false,
       isApproved: false,
       credentials: {
-          username: formData.username || `user${Date.now()}`,
-          password: formData.password || '123456'
+          username: formData.username,
+          password: formData.password
       },
       products: formData.categories.map((cat, idx) => ({
-        id: `new-${Date.now()}-${idx}`,
-        name: `Seasonal ${cat}`,
+        id: `p-${Date.now()}-${idx}`,
+        name: `Fresh ${cat}`,
         category: cat as ProductCategory,
         price: 0,
         unit: 'kg',
@@ -200,7 +168,6 @@ const AddFarmer: React.FC = () => {
       }))
     };
 
-    // 3. Submit to Formspree
     try {
       await fetch("https://formspree.io/f/mzznnyvg", {
         method: "POST",
@@ -218,16 +185,15 @@ const AddFarmer: React.FC = () => {
           address: formData.address,
           description: formData.description,
           categories: formData.categories.join(', '),
-          coordinates_lat: finalCoordinates.lat,
-          coordinates_lng: finalCoordinates.lng,
+          coordinates_lat: finalCoords.lat,
+          coordinates_lng: finalCoords.lng,
           image_url: imageUrl
         })
       });
     } catch (error) {
-      console.error("Failed to send to Formspree", error);
+      console.error("Failed to notify via Formspree", error);
     }
 
-    // 4. Update Local Context
     addFarmer(newFarmer);
     setIsSubmitting(false);
     setStep('success');
@@ -236,271 +202,78 @@ const AddFarmer: React.FC = () => {
   if (step === 'success') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-in fade-in duration-500 pb-20">
-        <div className="bg-yellow-100 p-4 rounded-full text-yellow-700 mb-6">
-          <Clock size={48} />
-        </div>
-        <h2 className="text-2xl font-bold text-stone-900 font-serif mb-2">Submission Pending</h2>
-        <p className="text-stone-600 mb-8 max-w-xs">
-          Thank you! Your farm has been submitted. You can login with your username <strong>{formData.username}</strong> once approved.
-        </p>
-        <button 
-          onClick={() => navigate('/')}
-          className="bg-stone-900 text-white px-8 py-3 rounded-xl font-medium hover:bg-stone-800 transition-colors shadow-lg"
-        >
-          Return to Discover
-        </button>
+        <div className="bg-yellow-100 p-4 rounded-full text-yellow-700 mb-6"><Clock size={48} /></div>
+        <h2 className="text-2xl font-bold text-stone-900 font-serif mb-2">{t('registration_pending')}</h2>
+        <p className="text-stone-600 mb-8 max-w-xs">{t('pending_approval_msg')} <strong>{formData.username}</strong> once approved.</p>
+        <button onClick={() => navigate('/')} className="bg-stone-900 text-white px-8 py-3 rounded-xl font-medium shadow-lg transition-all active:scale-95">{t('return_discover')}</button>
       </div>
     );
   }
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 pb-24">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-stone-900 font-serif">Add New Farmer</h1>
-        <p className="text-stone-500 text-sm mt-1">Help grow our local community</p>
-      </div>
-
+      <h1 className="text-2xl font-bold text-stone-900 font-serif mb-6">{t('join_market')}</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Name */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Farm / Market Name</label>
-          <input
-            required
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            placeholder="e.g. Zemes Dārzs"
-            className="w-full px-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm text-stone-900"
-          />
-        </div>
-
-        {/* Credentials Section */}
-        <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-           <h3 className="text-sm font-bold text-green-800 mb-3 flex items-center gap-2"><Lock size={14}/> Farmer Login Setup</h3>
-           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-stone-600 mb-1">Username</label>
-                <input
-                  required
-                  name="username"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                  placeholder="Create username"
-                  className="w-full px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm text-stone-900"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-stone-600 mb-1">Password</label>
-                <input
-                  required
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Create password"
-                  className="w-full px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm text-stone-900"
-                />
-              </div>
+        <div><label className="block text-sm font-medium text-stone-700 mb-1">{t('farm_name')}</label><input required name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Amber Fields" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none transition-all shadow-sm" /></div>
+        
+        <div className="bg-green-50 p-4 rounded-xl border border-green-100 space-y-4">
+           <h3 className="text-xs font-bold text-green-800 uppercase tracking-widest flex items-center gap-2"><Lock size={14}/> Dashboard Login</h3>
+           <div className="grid grid-cols-2 gap-4">
+              <input required name="username" value={formData.username} onChange={handleInputChange} placeholder={t('username')} className="px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm" />
+              <input required type="password" name="password" value={formData.password} onChange={handleInputChange} placeholder={t('password')} className="px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm" />
            </div>
         </div>
 
-        {/* Categories */}
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Products Sold</label>
+          <label className="block text-sm font-medium text-stone-700 mb-2">{t('primary_products')}</label>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.filter(c => c.value !== 'ALL').map((cat) => (
-              <button
-                key={cat.value}
-                type="button"
-                onClick={() => toggleCategory(cat.value)}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all ${
-                  formData.categories.includes(cat.value)
-                    ? 'bg-green-700 text-white border-green-700 shadow-sm'
-                    : 'bg-white text-stone-600 border-stone-200 hover:border-green-500'
-                }`}
-              >
-                {cat.label}
-              </button>
+              <button key={cat.value} type="button" onClick={() => toggleCategory(cat.value)} className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all ${formData.categories.includes(cat.value) ? 'bg-green-700 text-white border-green-700' : 'bg-white text-stone-600 border-stone-200 hover:border-green-500'}`}>{catMap[cat.value] || cat.label}</button>
             ))}
           </div>
         </div>
 
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Description</label>
-          <textarea
-            required
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            rows={3}
-            placeholder="Tell us about the produce (organic, homemade, etc.)..."
-            className="w-full px-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all resize-none shadow-sm text-stone-900"
-          />
+        <div><label className="block text-sm font-medium text-stone-700 mb-1">Description</label><textarea required name="description" value={formData.description} onChange={handleInputChange} rows={3} placeholder="About your organic harvest..." className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none transition-all resize-none shadow-sm" /></div>
+
+        <div className="grid grid-cols-2 gap-4">
+            <div><label className="block text-sm font-medium text-stone-700 mb-1">{t('phone')}</label><input required name="phone" value={formData.phone} onChange={handleInputChange} placeholder="+371..." className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none shadow-sm" /></div>
+            <div><label className="block text-sm font-medium text-stone-700 mb-1">{t('email')}</label><input required type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="farm@example.com" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none shadow-sm" /></div>
         </div>
 
-        {/* Contact Info Group */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">Phone Number</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                placeholder="+371 20000000"
-                className="w-full px-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm text-stone-900"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">Email (for Admin)</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
-                <input
-                  required
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="your@email.com"
-                  className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm text-stone-900"
-                />
-              </div>
-            </div>
-        </div>
-
-        {/* Location Section */}
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Location Details</label>
-          
+          <label className="block text-sm font-medium text-stone-700 mb-1">{t('location')}</label>
           <div className="space-y-3">
-            <div className="relative">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
-              <input
-                required
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                placeholder="Address or select from map"
-                className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all shadow-sm text-stone-900"
-              />
-            </div>
-
+            <input required name="address" value={formData.address} onChange={handleInputChange} placeholder={t('address')} className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none shadow-sm" />
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setShowMapPicker(true)}
-                className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-stone-200"
-              >
-                <MapIcon size={16} /> Select on Map
-              </button>
-              
-              <button
-                type="button"
-                onClick={handleUseCurrentLocation}
-                disabled={isLocating}
-                className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-stone-200"
-              >
-                {isLocating ? <Loader2 size={16} className="animate-spin" /> : <Crosshair size={16} />}
-                {isLocating ? 'Locating...' : 'Use My Location'}
-              </button>
+              <button type="button" onClick={() => setShowMapPicker(true)} className="flex-1 bg-stone-100 text-stone-700 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border border-stone-200 transition-all hover:bg-stone-200"><MapIcon size={16} /> Map Picker</button>
+              <button type="button" onClick={handleUseCurrentLocation} disabled={isLocating} className="flex-1 bg-stone-100 text-stone-700 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border border-stone-200 transition-all hover:bg-stone-200">{isLocating ? <Loader2 size={16} className="animate-spin" /> : <Crosshair size={16} />} Use GPS</button>
             </div>
           </div>
-          
-          {formData.coordinates && (
-            <div className="mt-2 text-xs text-green-600 flex items-center gap-1 font-medium bg-green-50 p-2 rounded-lg border border-green-100 w-fit">
-              <CheckCircle size={12} />
-              Location pinned: {formData.coordinates.lat.toFixed(4)}, {formData.coordinates.lng.toFixed(4)}
-            </div>
-          )}
         </div>
 
-        {/* Photo Upload */}
         <div>
-           <label className="block text-sm font-medium text-stone-700 mb-1">Cover Photo</label>
-           <input 
-             type="file" 
-             ref={fileInputRef} 
-             onChange={handleImageSelect} 
-             accept="image/*" 
-             className="hidden" 
-           />
-           <div 
-             onClick={() => fileInputRef.current?.click()}
-             className="border-2 border-dashed border-stone-200 rounded-xl h-48 flex flex-col items-center justify-center text-stone-400 hover:bg-stone-50 hover:border-green-300 transition-all cursor-pointer overflow-hidden relative group bg-stone-50"
-           >
-              {previewImage ? (
-                <>
-                  <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-white/20 backdrop-blur text-white px-4 py-2 rounded-full flex items-center gap-2">
-                      <Upload size={16} /> Change Photo
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="bg-white p-4 rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">
-                    <Upload size={24} className="text-green-600" />
-                  </div>
-                  <span className="text-sm font-medium text-stone-600">Tap to upload cover image</span>
-                  <span className="text-xs text-stone-400 mt-1">JPG, PNG up to 5MB</span>
-                </>
-              )}
+           <label className="block text-sm font-medium text-stone-700 mb-1">{t('cover_photo')}</label>
+           <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-stone-200 rounded-xl h-48 flex flex-col items-center justify-center text-stone-400 hover:bg-stone-50 hover:border-green-300 transition-all cursor-pointer overflow-hidden relative bg-stone-50">
+              <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
+              {previewImage ? <img src={previewImage} className="w-full h-full object-cover" /> : <div className="text-center"><Upload size={24} className="mx-auto mb-2 text-stone-300" /><span className="text-xs font-medium">Click to upload JPG/PNG</span></div>}
            </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 disabled:opacity-70 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex justify-center items-center gap-2 mt-4"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 size={20} className="animate-spin" />
-              Submitting...
-            </>
-          ) : (
-            'Submit Farmer'
-          )}
-        </button>
+        <button type="submit" disabled={isSubmitting} className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 transition-all active:scale-[0.98] flex justify-center items-center gap-2">{isSubmitting ? <Loader2 size={20} className="animate-spin" /> : t('register_farm')}</button>
       </form>
 
-      {/* Map Picker Modal */}
       {showMapPicker && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[70vh]">
             <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-white z-10">
-              <div>
-                <h3 className="font-bold text-stone-800">Pin Location</h3>
-                <p className="text-xs text-stone-500">Drag map to center the pin</p>
-              </div>
-              <button 
-                onClick={() => setShowMapPicker(false)}
-                className="p-1 hover:bg-stone-100 rounded-full transition-colors"
-              >
-                <X size={24} />
-              </button>
+              <h3 className="font-bold text-stone-800">Pin Location</h3>
+              <button onClick={() => setShowMapPicker(false)} className="p-1 hover:bg-stone-100 rounded-full transition-colors"><X size={24} /></button>
             </div>
-            
             <div className="relative flex-1 bg-stone-100 overflow-hidden">
               <div ref={mapContainerRef} className="absolute inset-0 z-0" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none pb-[16px]">
-                <MapPin size={40} className="text-red-600 drop-shadow-lg fill-red-100" strokeWidth={2.5} />
-              </div>
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg text-xs font-semibold text-stone-600 pointer-events-none whitespace-nowrap border border-white/50">
-                Move map to place pin
-              </div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none pb-[16px]"><MapPin size={40} className="text-red-600 drop-shadow-lg" strokeWidth={2.5} /></div>
             </div>
-            
-            <div className="p-4 border-t border-stone-100 bg-white z-10">
-              <button 
-                onClick={handleConfirmLocation}
-                className="w-full bg-green-700 text-white font-bold py-3 rounded-xl hover:bg-green-800 transition-colors shadow-lg active:scale-[0.98]"
-              >
-                Confirm Location
-              </button>
-            </div>
+            <div className="p-4 border-t border-stone-100 bg-white z-10"><button onClick={handleConfirmLocation} className="w-full bg-green-700 text-white font-bold py-3 rounded-xl hover:bg-green-800 transition-colors shadow-lg active:scale-[0.98]">Confirm Location</button></div>
           </div>
         </div>
       )}

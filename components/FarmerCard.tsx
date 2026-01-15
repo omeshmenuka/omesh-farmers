@@ -3,6 +3,7 @@ import React from 'react';
 import { MapPin, Star, CheckCircle, Package } from 'lucide-react';
 import { Farmer } from '../types';
 import { useFarmers } from '../context/FarmerContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 
 interface FarmerCardProps {
@@ -12,6 +13,7 @@ interface FarmerCardProps {
 
 const FarmerCard: React.FC<FarmerCardProps> = ({ farmer, onClick }) => {
   const { currentUser } = useFarmers();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleViewStock = (e: React.MouseEvent) => {
@@ -78,7 +80,7 @@ const FarmerCard: React.FC<FarmerCardProps> = ({ farmer, onClick }) => {
               onClick={handleViewStock}
               className="flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-50 px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors w-fit"
             >
-              <Package size={12} /> View Stock
+              <Package size={12} /> {t('view_stock')}
             </button>
           </div>
         )}
