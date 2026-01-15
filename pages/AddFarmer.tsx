@@ -214,13 +214,13 @@ const AddFarmer: React.FC = () => {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 pb-24">
       <h1 className="text-2xl font-bold text-stone-900 font-serif mb-6">{t('join_market')}</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div><label className="block text-sm font-medium text-stone-700 mb-1">{t('farm_name')}</label><input required name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Amber Fields" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none transition-all shadow-sm" /></div>
+        <div><label className="block text-sm font-medium text-stone-700 mb-1">{t('farm_name')}</label><input required name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Amber Fields" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none transition-all shadow-sm text-stone-900" /></div>
         
         <div className="bg-green-50 p-4 rounded-xl border border-green-100 space-y-4">
-           <h3 className="text-xs font-bold text-green-800 uppercase tracking-widest flex items-center gap-2"><Lock size={14}/> Dashboard Login</h3>
+           <h3 className="text-xs font-bold text-green-800 uppercase tracking-widest flex items-center gap-2"><Lock size={14}/> DASHBOARD LOGIN</h3>
            <div className="grid grid-cols-2 gap-4">
-              <input required name="username" value={formData.username} onChange={handleInputChange} placeholder={t('username')} className="px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm" />
-              <input required type="password" name="password" value={formData.password} onChange={handleInputChange} placeholder={t('password')} className="px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm" />
+              <input required name="username" value={formData.username} onChange={handleInputChange} placeholder={t('username')} className="px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm text-stone-900" />
+              <input required type="password" name="password" value={formData.password} onChange={handleInputChange} placeholder={t('password')} className="px-3 py-2 rounded-lg bg-white border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none text-sm text-stone-900" />
            </div>
         </div>
 
@@ -233,17 +233,17 @@ const AddFarmer: React.FC = () => {
           </div>
         </div>
 
-        <div><label className="block text-sm font-medium text-stone-700 mb-1">Description</label><textarea required name="description" value={formData.description} onChange={handleInputChange} rows={3} placeholder="About your organic harvest..." className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none transition-all resize-none shadow-sm" /></div>
+        <div><label className="block text-sm font-medium text-stone-700 mb-1">Description</label><textarea required name="description" value={formData.description} onChange={handleInputChange} rows={3} placeholder="About your organic harvest..." className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none transition-all resize-none shadow-sm text-stone-900" /></div>
 
         <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium text-stone-700 mb-1">{t('phone')}</label><input required name="phone" value={formData.phone} onChange={handleInputChange} placeholder="+371..." className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none shadow-sm" /></div>
-            <div><label className="block text-sm font-medium text-stone-700 mb-1">{t('email')}</label><input required type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="farm@example.com" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none shadow-sm" /></div>
+            <div><label className="block text-sm font-medium text-stone-700 mb-1">{t('phone')}</label><input required name="phone" value={formData.phone} onChange={handleInputChange} placeholder="+371..." className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none shadow-sm text-stone-900" /></div>
+            <div><label className="block text-sm font-medium text-stone-700 mb-1">{t('email')}</label><input required type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="farm@example.com" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none shadow-sm text-stone-900" /></div>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">{t('location')}</label>
           <div className="space-y-3">
-            <input required name="address" value={formData.address} onChange={handleInputChange} placeholder={t('address')} className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none shadow-sm" />
+            <input required name="address" value={formData.address} onChange={handleInputChange} placeholder={t('address')} className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-green-500 outline-none shadow-sm text-stone-900" />
             <div className="flex gap-2">
               <button type="button" onClick={() => setShowMapPicker(true)} className="flex-1 bg-stone-100 text-stone-700 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border border-stone-200 transition-all hover:bg-stone-200"><MapIcon size={16} /> Map Picker</button>
               <button type="button" onClick={handleUseCurrentLocation} disabled={isLocating} className="flex-1 bg-stone-100 text-stone-700 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 border border-stone-200 transition-all hover:bg-stone-200">{isLocating ? <Loader2 size={16} className="animate-spin" /> : <Crosshair size={16} />} Use GPS</button>
