@@ -95,7 +95,6 @@ const FarmerDetail: React.FC = () => {
   };
 
   const copyToClipboard = () => {
-    // Fixed withText to writeText
     navigator.clipboard.writeText(shareUrl).then(() => {
       setShowShareToast(true);
       setTimeout(() => setShowShareToast(false), 2000);
